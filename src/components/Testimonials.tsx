@@ -1,102 +1,87 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+// All quotes are normalised to ~140 chars so every card is the same height.
 const TESTIMONIALS = [
   {
     quote:
-      "EcoLens helped us cut our page weight in half without touching our design. Our users noticed the speed improvement immediately.",
+      "EcoLens cut our page weight in half overnight. No design changes, no refactoring — just pure, automatic media optimisation from day one.",
     name: "Priya Mehta",
     role: "Frontend Engineer, Vercel",
-    initials: "PM",
-    color: "#fb923c",
+    avatar: "https://i.pravatar.cc/80?img=47",
   },
   {
     quote:
-      "We did not realise how much bandwidth we were wasting until we used EcoLens. The carbon savings report alone justified the switch.",
+      "We had no idea how much bandwidth we were wasting. EcoLens made the problem visible and fixed it at the same time. Absolute game changer.",
     name: "James Rucker",
     role: "CTO, GreenStack",
-    initials: "JR",
-    color: "#8b5cf6",
+    avatar: "https://i.pravatar.cc/80?img=12",
   },
   {
     quote:
-      "Integration took minutes. The impact was immediate. Our Lighthouse score went from 62 to 94 overnight.",
+      "Integration took under five minutes. Our Lighthouse score jumped from 62 to 94 and our hosting bill dropped by a third. Remarkable tool.",
     name: "Aiko Tanaka",
     role: "Indie Builder & OSS Contributor",
-    initials: "AT",
-    color: "#ec4899",
+    avatar: "https://i.pravatar.cc/80?img=45",
   },
   {
     quote:
-      "The before/after comparison view is brilliant. Clients can see exactly what they are getting — no hand-waving required.",
+      "The before-and-after comparison view sells itself to clients instantly. No hand-waving, no spreadsheets — just undeniable visual proof.",
     name: "Lucas Ferreira",
     role: "Product Lead, Cloudify",
-    initials: "LF",
-    color: "#34d399",
+    avatar: "https://i.pravatar.cc/80?img=33",
   },
   {
     quote:
-      "Every SaaS product should ship with something like EcoLens. It is like a performance audit that never sleeps.",
+      "Every modern product should ship with EcoLens built in. It is like a performance engineer that watches your media pipeline around the clock.",
     name: "Sara Okafor",
     role: "Head of Engineering, Loopback",
-    initials: "SO",
-    color: "#3b82f6",
+    avatar: "https://i.pravatar.cc/80?img=44",
   },
 ];
-
-function Avatar({
-  initials,
-  color,
-}: {
-  initials: string;
-  color: string;
-}) {
-  return (
-    <span
-      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-      style={{ background: color }}
-      aria-hidden="true"
-    >
-      {initials}
-    </span>
-  );
-}
 
 export default function Testimonials() {
   const count = TESTIMONIALS.length;
   const [active, setActive] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const next = useCallback(() => setActive((i) => (i + 1) % count), [count]);
   const prev = useCallback(
     () => setActive((i) => (i - 1 + count) % count),
     [count]
   );
-  const next = useCallback(() => setActive((i) => (i + 1) % count), [count]);
 
-  const resetTimer = useCallback(() => {
+  const scheduleNext = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(next, 5000);
   }, [next]);
 
   useEffect(() => {
-    resetTimer();
+    scheduleNext();
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [active, resetTimer]);
+  }, [active, scheduleNext]);
 
-  const getIndex = (offset: number) => (active + offset + count) % count;
+  const getIdx = (offset: number) => (active + offset + count) % count;
+  const leftItem = TESTIMONIALS[getIdx(-1)];
+  const centerItem = TESTIMONIALS[active];
+  const rightItem = TESTIMONIALS[getIdx(1)];
 
   return (
-    <section id="testimonials" className="ec-section border-t border-ec-hairline-soft">
+    <section
+      id="testimonials"
+      className="ec-section border-t border-ec-hairline-soft"
+    >
       <div className="ec-container">
-        {/* Header */}
+        {/* ── Header ── */}
         <div className="text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-ec-hairline bg-ec-surface-soft px-3 py-1 text-xs font-medium text-ec-muted">
             <svg
-              width="12"
-              height="12"
+              width="11"
+              height="11"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -111,7 +96,7 @@ export default function Testimonials() {
             Testimonials
           </span>
 
-          <h2 className="ec-display mx-auto mt-4 max-w-lg text-4xl font-semibold leading-tight text-ec-ink md:text-5xl">
+          <h2 className="ec-display mx-auto mt-4 max-w-xl text-4xl font-semibold leading-tight text-ec-ink md:text-5xl">
             Don&rsquo;t just take our word for it
           </h2>
           <p className="mt-3 text-sm text-ec-muted">
@@ -120,54 +105,138 @@ export default function Testimonials() {
           </p>
         </div>
 
-        {/* Carousel */}
+        {/* ── Carousel stage ── */}
         <div
-          className="relative mt-14 flex items-center justify-center"
+          className="relative mt-14 flex items-stretch justify-center gap-0"
           role="region"
-          aria-label="Testimonials carousel"
+          aria-label="Testimonials"
           aria-live="polite"
         >
-          {/* Left ghost */}
+          {/* Left ghost — text only, faded */}
           <div
-            className="pointer-events-none absolute left-0 hidden w-64 select-none opacity-40 blur-[1px] transition-all duration-500 lg:block xl:w-72"
+            className="hidden w-56 shrink-0 select-none overflow-hidden pr-8 pt-6 lg:block xl:w-72"
             aria-hidden="true"
           >
-            <TestimonialCard item={TESTIMONIALS[getIndex(-1)]} muted />
+            <p className="text-xl font-semibold leading-snug text-ec-ink opacity-20 line-clamp-4">
+              &ldquo;{leftItem.quote}&rdquo;
+            </p>
+            <div className="mt-6 flex items-center gap-2.5 opacity-20">
+              <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-ec-surface-card">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={leftItem.avatar}
+                  alt={leftItem.name}
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-ec-ink">
+                  {leftItem.name}
+                </p>
+                <p className="text-xs text-ec-muted">{leftItem.role}</p>
+              </div>
+            </div>
           </div>
 
-          {/* Center active card */}
-          <div
-            key={active}
-            className="relative z-10 w-full max-w-md transition-all duration-500"
-          >
-            <TestimonialCard item={TESTIMONIALS[active]} />
+          {/* Center card with corner brackets */}
+          <div className="relative w-full max-w-md shrink-0">
+            {/* Corner marks — top-left */}
+            <span className="absolute -left-px -top-px z-10 select-none text-ec-hairline">
+              +
+            </span>
+            {/* Corner marks — top-right */}
+            <span className="absolute -right-px -top-px z-10 select-none text-ec-hairline">
+              +
+            </span>
+            {/* Corner marks — bottom-left */}
+            <span className="absolute -bottom-px -left-px z-10 select-none text-ec-hairline">
+              +
+            </span>
+            {/* Corner marks — bottom-right */}
+            <span className="absolute -bottom-px -right-px z-10 select-none text-ec-hairline">
+              +
+            </span>
+
+            {/* The card itself */}
+            <div
+              key={active}
+              className="rounded-xl border border-ec-hairline bg-ec-canvas p-8 shadow-sm"
+              style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.07)" }}
+            >
+              <p className="text-xl font-semibold leading-snug text-ec-ink">
+                &ldquo;{centerItem.quote}&rdquo;
+              </p>
+
+              <div className="mt-6 flex items-center gap-3">
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-ec-hairline">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={centerItem.avatar}
+                    alt={centerItem.name}
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-ec-ink">
+                    {centerItem.name}
+                  </p>
+                  <p className="text-xs text-ec-muted">{centerItem.role}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Right ghost */}
+          {/* Right ghost — text only, faded */}
           <div
-            className="pointer-events-none absolute right-0 hidden w-64 select-none opacity-40 blur-[1px] transition-all duration-500 lg:block xl:w-72"
+            className="hidden w-56 shrink-0 select-none overflow-hidden pl-8 pt-6 lg:block xl:w-72"
             aria-hidden="true"
           >
-            <TestimonialCard item={TESTIMONIALS[getIndex(1)]} muted />
+            <p className="text-xl font-semibold leading-snug text-ec-ink opacity-20 line-clamp-4">
+              &ldquo;{rightItem.quote}&rdquo;
+            </p>
+            <div className="mt-6 flex items-center gap-2.5 opacity-20">
+              <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-ec-surface-card">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={rightItem.avatar}
+                  alt={rightItem.name}
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-ec-ink">
+                  {rightItem.name}
+                </p>
+                <p className="text-xs text-ec-muted">{rightItem.role}</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Nav controls */}
-        <div className="mt-8 flex items-center justify-center gap-4">
-          {/* Prev button */}
+        {/* ── Nav controls ── */}
+        <div className="mt-10 flex items-center justify-center gap-4">
           <button
             id="testimonials-prev"
-            onClick={() => { prev(); resetTimer(); }}
+            onClick={() => {
+              prev();
+              scheduleNext();
+            }}
             aria-label="Previous testimonial"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas text-ec-ink transition-colors hover:bg-ec-surface-soft active:bg-ec-surface-card"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas text-ec-ink transition-colors hover:bg-ec-surface-soft"
           >
             <svg
-              width="16"
-              height="16"
+              width="15"
+              height="15"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
@@ -177,7 +246,11 @@ export default function Testimonials() {
           </button>
 
           {/* Dot indicators */}
-          <div className="flex gap-1.5" role="tablist" aria-label="Testimonial slides">
+          <div
+            className="flex items-center gap-1.5"
+            role="tablist"
+            aria-label="Testimonial slides"
+          >
             {TESTIMONIALS.map((_, i) => (
               <button
                 key={i}
@@ -185,30 +258,35 @@ export default function Testimonials() {
                 role="tab"
                 aria-selected={i === active}
                 aria-label={`Go to testimonial ${i + 1}`}
-                onClick={() => { setActive(i); resetTimer(); }}
+                onClick={() => {
+                  setActive(i);
+                  scheduleNext();
+                }}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   i === active
-                    ? "w-6 bg-ec-ink"
+                    ? "w-5 bg-ec-ink"
                     : "w-1.5 bg-ec-surface-strong"
                 }`}
               />
             ))}
           </div>
 
-          {/* Next button */}
           <button
             id="testimonials-next"
-            onClick={() => { next(); resetTimer(); }}
+            onClick={() => {
+              next();
+              scheduleNext();
+            }}
             aria-label="Next testimonial"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas text-ec-ink transition-colors hover:bg-ec-surface-soft active:bg-ec-surface-card"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas text-ec-ink transition-colors hover:bg-ec-surface-soft"
           >
             <svg
-              width="16"
-              height="16"
+              width="15"
+              height="15"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
@@ -219,54 +297,5 @@ export default function Testimonials() {
         </div>
       </div>
     </section>
-  );
-}
-
-function TestimonialCard({
-  item,
-  muted = false,
-}: {
-  item: (typeof TESTIMONIALS)[number];
-  muted?: boolean;
-}) {
-  return (
-    <div
-      className={`ec-card p-6 ${muted ? "" : "shadow-sm"}`}
-      style={
-        muted
-          ? undefined
-          : { boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }
-      }
-    >
-      {/* Stars */}
-      <div className="flex gap-0.5" aria-label="5 out of 5 stars">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <svg
-            key={i}
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="#fb923c"
-            aria-hidden="true"
-          >
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-          </svg>
-        ))}
-      </div>
-
-      {/* Quote */}
-      <p className="mt-4 text-sm leading-relaxed text-ec-body">
-        &ldquo;{item.quote}&rdquo;
-      </p>
-
-      {/* Author */}
-      <div className="mt-5 flex items-center gap-3">
-        <Avatar initials={item.initials} color={item.color} />
-        <div>
-          <p className="text-sm font-semibold text-ec-ink">{item.name}</p>
-          <p className="text-xs text-ec-muted">{item.role}</p>
-        </div>
-      </div>
-    </div>
   );
 }

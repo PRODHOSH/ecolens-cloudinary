@@ -292,6 +292,40 @@ The footer flips to `{colors.surface-dark}` (#101010) — a deep near-black that
 - Spacing rhythm is `{spacing.section}` (96px) between major bands — tight enough to feel modern-SaaS but generous enough to breathe.
 - Border radius is hierarchical: `{rounded.md}` (8px) for buttons + inputs, `{rounded.lg}` (12px) for content cards, `{rounded.xl}` (16px) for the hero app-mockup container, `{rounded.pill}` for nav-pill-group + badges, `{rounded.full}` for avatars + icon buttons.
 
+## DotGrid Background
+
+The page background uses an **interactive dot-grid canvas** rendered via `DotGrid.jsx` (powered by GSAP InertiaPlugin). This is a `position: fixed; inset: 0; z-index: 0` layer that sits beneath all page content.
+
+**Configuration:**
+```
+dotSize:       3       — very small circles, barely-visible at rest
+gap:           20      — tight grid, roughly 23px cell size
+baseColor:     #d1d5db — Tailwind gray-300; soft, neutral dot at rest
+activeColor:   #9ca3af — Tailwind gray-400; dots near cursor shift slightly darker
+proximity:     80      — cursor proximity radius for color shift (px)
+shockRadius:   180     — click-shock wave radius (px)
+shockStrength: 4       — dot displacement strength on click
+resistance:    750     — GSAP inertia resistance; dots snap back quickly
+returnDuration: 1.5   — elastic return duration in seconds
+```
+
+**Background colour:** `#ffffff` (pure white, owned by the fixed wrapper div — body and html are `background: transparent`).
+
+**z-index strategy:**
+- Fixed DotGrid wrapper: `z-index: 0`
+- Page content wrapper: `z-index: 10` (relative)
+- All cards, sections, header, footer render above the grid naturally
+
+**Why fixed not absolute:** A fixed layer means the dot grid is always visible as you scroll — dots animate relative to the viewport, not the document, which feels alive and interactive throughout the entire scroll journey.
+
+**Interaction model:**
+- Hovering the cursor near dots shifts their colour from `baseColor` toward `activeColor` within the `proximity` radius.
+- Moving the cursor quickly pushes nearby dots away via GSAP inertia — they elastically return.
+- Clicking anywhere on the page triggers a radial shockwave, displacing dots within `shockRadius`.
+
+**Section backgrounds:** Sections themselves have no background color (transparent), so the dot grid shows through gaps between cards. Content cards retain their `{colors.surface-card}` or `{colors.canvas}` backgrounds — the dots are only visible in the whitespace between cards, creating depth without distraction.
+
+
 ## Colors
 
 ### Brand & Accent

@@ -52,7 +52,7 @@
 }
 
 body {
-  background: var(--ec-canvas);
+  background: transparent;
   color: var(--ec-ink);
   font-family: var(--font-sans), system-ui, sans-serif;
 }

@@ -35,7 +35,7 @@ export default function RootLayout({
       lang="en"
       className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-ec-canvas text-ec-ink">
+      <body className="min-h-full flex flex-col bg-transparent text-ec-ink">
         {children}
       </body>
     </html>
