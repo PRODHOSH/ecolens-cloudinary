@@ -1,26 +1,173 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ec-canvas: #ffffff;
+  --ec-ink: #111111;
+  --ec-body: #374151;
+  --ec-muted: #6b7280;
+  --ec-muted-soft: #898989;
+  --ec-hairline: #e5e7eb;
+  --ec-hairline-soft: #f3f4f6;
+  --ec-surface-soft: #f8f9fa;
+  --ec-surface-card: #f5f5f5;
+  --ec-surface-strong: #e5e7eb;
+  --ec-surface-dark: #101010;
+  --ec-surface-dark-elevated: #1a1a1a;
+  --ec-on-primary: #ffffff;
+  --ec-on-dark: #ffffff;
+  --ec-on-dark-soft: #a1a1aa;
+  --ec-primary: #111111;
+  --ec-primary-active: #242424;
+  --ec-brand: #3b82f6;
+  --ec-success: #10b981;
+  --ec-warning: #f59e0b;
+  --ec-error: #ef4444;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ec-canvas: var(--ec-canvas);
+  --color-ec-ink: var(--ec-ink);
+  --color-ec-body: var(--ec-body);
+  --color-ec-muted: var(--ec-muted);
+  --color-ec-muted-soft: var(--ec-muted-soft);
+  --color-ec-hairline: var(--ec-hairline);
+  --color-ec-hairline-soft: var(--ec-hairline-soft);
+  --color-ec-surface-soft: var(--ec-surface-soft);
+  --color-ec-surface-card: var(--ec-surface-card);
+  --color-ec-surface-strong: var(--ec-surface-strong);
+  --color-ec-surface-dark: var(--ec-surface-dark);
+  --color-ec-surface-dark-elevated: var(--ec-surface-dark-elevated);
+  --color-ec-on-primary: var(--ec-on-primary);
+  --color-ec-on-dark: var(--ec-on-dark);
+  --color-ec-on-dark-soft: var(--ec-on-dark-soft);
+  --color-ec-primary: var(--ec-primary);
+  --color-ec-primary-active: var(--ec-primary-active);
+  --color-ec-brand: var(--ec-brand);
+  --color-ec-success: var(--ec-success);
+  --color-ec-warning: var(--ec-warning);
+  --color-ec-error: var(--ec-error);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ec-canvas);
+  color: var(--ec-ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: rgba(17, 17, 17, 0.12);
+}
+
+@layer components {
+  .ec-container {
+    @apply mx-auto w-full max-w-6xl px-6;
+  }
+
+  .ec-section {
+    @apply py-24;
+  }
+
+  .ec-card {
+    background: var(--ec-surface-card);
+    border: 1px solid var(--ec-hairline);
+    border-radius: 12px;
+  }
+
+  .ec-card-soft {
+    background: var(--ec-surface-soft);
+    border: 1px solid var(--ec-hairline-soft);
+    border-radius: 12px;
+  }
+
+  .ec-button-primary {
+    background: var(--ec-primary);
+    color: var(--ec-on-primary);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .ec-button-secondary {
+    background: var(--ec-canvas);
+    color: var(--ec-ink);
+    border: 1px solid var(--ec-hairline);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .ec-input {
+    background: var(--ec-canvas);
+    color: var(--ec-ink);
+    border: 1px solid var(--ec-hairline);
+    border-radius: 8px;
+    padding: 10px 14px;
+    height: 40px;
+  }
+
+  .ec-display {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    letter-spacing: -0.04em;
+  }
+}
+
+.ec-marquee {
+  overflow: hidden;
+  position: relative;
+}
+
+.ec-marquee-track {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  animation: ec-marquee 24s linear infinite;
+}
+
+@keyframes ec-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-slow {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s ease both;
+}
+
+.animate-fade-up-delay {
+  animation: fade-up 0.7s ease 0.2s both;
+}
+
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
 }
