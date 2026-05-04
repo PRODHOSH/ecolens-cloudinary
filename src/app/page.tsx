@@ -3,28 +3,12 @@
 import CopyButton from "@/components/CopyButton";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import Testimonials from "@/components/Testimonials";
 
 const SDK_SNIPPET = `<script src="https://ecolens.app/sdk.js"></script>
 <script>
   EcoLens.optimize();
 </script>`;
-
-const TESTIMONIALS = [
-  {
-    quote:
-      "EcoLens helped us cut our page weight in half without touching our design.",
-    author: "Frontend Engineer",
-  },
-  {
-    quote:
-      "We did not realize how much bandwidth we were wasting until we used EcoLens.",
-    author: "Product Team",
-  },
-  {
-    quote: "Integration took minutes. The impact was immediate.",
-    author: "Indie Builder",
-  },
-];
 
 export default function Home() {
   return (
@@ -260,28 +244,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="ec-section border-t border-ec-hairline-soft">
-          <div className="ec-container">
-            <h2 className="ec-display text-3xl font-semibold md:text-4xl">
-              Loved by Developers and Teams
-            </h2>
-            <div className="ec-marquee mt-8">
-              <div className="ec-marquee-track">
-                {[...TESTIMONIALS, ...TESTIMONIALS].map((item, index) => (
-                  <div
-                    key={`${item.author}-${index}`}
-                    className="ec-card min-w-[280px] max-w-sm p-6"
-                  >
-                    <p className="text-sm text-ec-body">{item.quote}</p>
-                    <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-ec-muted">
-                      {item.author}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+        <Testimonials />
 
         <section className="ec-section">
           <div className="ec-container">
