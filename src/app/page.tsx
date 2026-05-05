@@ -69,8 +69,8 @@ export default function Home() {
                 <p className="text-xs uppercase tracking-[0.3em] text-ec-muted">
                   EcoLens platform
                 </p>
-                <h1 className="ec-display mt-6 text-4xl font-semibold leading-tight md:text-6xl">
-                  Cut Website Weight. Not Quality.
+                <h1 className="ec-display mt-6 text-5xl font-black leading-none tracking-tight md:text-7xl">
+                  Cut Website Weight.<br className="hidden md:block" /> Not Quality.
                 </h1>
                 <p className="mt-6 text-lg text-ec-body md:text-xl">
                   EcoLens uses Cloudinary to transform your media into faster,
@@ -233,66 +233,102 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ─── How it works + Feature grid ─────────────────────── */}
-          <section id="how" className="ec-section">
-            <div className="ec-container grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
-              <div className="ec-card p-8" data-reveal>
-                <p className="text-xs uppercase tracking-[0.2em] text-ec-muted">
-                  Cloudinary engine
-                </p>
-                <h2 className="ec-display mt-4 text-3xl font-semibold">
-                  Powered by Cloudinary&apos;s Intelligent Media Pipeline
+          {/* ─── How it works + Feature cards ────────────────────── */}
+          <section id="how" className="ec-section border-t border-ec-hairline-soft">
+            <div className="ec-container">
+
+              {/* Label + heading */}
+              <div data-reveal>
+                <p className="text-xs uppercase tracking-[0.2em] text-ec-muted">Cloudinary engine</p>
+                <h2 id="features" className="ec-display mt-3 max-w-lg text-4xl leading-tight md:text-5xl">
+                  Your images,<br />intelligently delivered.
                 </h2>
-                <p className="mt-4 text-sm text-ec-body">
-                  EcoLens leverages Cloudinary to automatically transform,
-                  optimize, and deliver media in the most efficient way possible.
-                </p>
-                <ul className="mt-6 space-y-3 text-sm text-ec-body">
-                  <li>Automatic format selection (WebP, AVIF)</li>
-                  <li>Smart quality optimization</li>
-                  <li>Responsive delivery across devices</li>
-                  <li>AI-powered cropping and enhancement</li>
-                  <li>Real-time media transformation</li>
-                </ul>
-                <p className="mt-6 text-sm font-semibold text-ec-ink">
-                  Enterprise-grade media optimization, made accessible.
-                </p>
               </div>
-              <div id="features">
-                <p className="text-xs uppercase tracking-[0.2em] text-ec-muted" data-reveal>
-                  Feature set
-                </p>
-                <h2 className="ec-display mt-4 text-3xl font-semibold md:text-4xl" data-reveal data-reveal-delay="100">
-                  Everything You Need to Optimize at Scale
-                </h2>
-                {/* Numbered bento feature list */}
-                <div className="mt-8 space-y-3">
+
+              {/* Two column */}
+              <div className="mt-14 grid items-start gap-12 lg:grid-cols-[1fr_1.5fr]">
+
+                {/* LEFT — vertical pipeline */}
+                <div className="space-y-0" data-reveal data-reveal-delay="100">
                   {[
-                    { n: "01", title: "Real-Time Website Analysis", detail: "Scan any public URL — EcoLens extracts every media asset and scores them for size, format, and delivery efficiency instantly.", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
-                    { n: "02", title: "Before / After Comparison", detail: "Side-by-side visual diff of original vs Cloudinary-optimized delivery. Clients see it. No explanation needed.", icon: "M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" },
-                    { n: "03", title: "Performance Insights", detail: "Get a breakdown of bandwidth saved, estimated load time improvement, and Lighthouse score delta — per page.", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
-                    { n: "04", title: "Carbon Impact Tracking", detail: "Translate bytes saved into grams of CO₂ avoided. Make sustainability tangible for your team and your users.", icon: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" },
-                    { n: "05", title: "AI Media Optimization", detail: "Cloudinary's AI auto-selects WebP/AVIF, smart-crops, quality-tuned, and delivers responsive sizes — zero config.", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-                    { n: "06", title: "One-Line Integration", detail: "Drop a single script tag. EcoLens rewrites image URLs on the fly — no build step, no CDN migration required.", icon: "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" },
-                  ].map((f, i) => (
-                    <div
-                      key={f.n}
-                      className="group flex items-start gap-4 rounded-xl border border-ec-hairline bg-ec-canvas px-5 py-4 transition-shadow hover:shadow-sm"
-                      data-reveal
-                      data-reveal-delay={String(Math.min(i * 80, 400))}
-                      style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
-                    >
-                      <span className="mt-0.5 shrink-0 text-[11px] font-semibold tabular-nums text-ec-muted">{f.n}</span>
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-ec-hairline bg-ec-surface-soft text-ec-ink">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={f.icon} /></svg>
+                    {
+                      dot: "bg-ec-surface-soft border border-ec-hairline text-ec-muted",
+                      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+                      title: "Your website",
+                      desc: "Paste any public URL — EcoLens extracts every image, video, and media asset from the page.",
+                    },
+                    {
+                      dot: "bg-ec-ink border-ec-ink text-white",
+                      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+                      title: "EcoLens analyses",
+                      desc: "Each asset is scored for format, size, compression ratio, and estimated CO₂ cost.",
+                    },
+                    {
+                      dot: "bg-[#eef0fb] border border-[#c5cbf0]",
+                      icon: <svg width="20" height="16" viewBox="0 0 48 36" fill="none" aria-hidden="true"><path d="M38.4 13.44C37.92 7.2 32.64 2.4 26.4 2.4C21.6 2.4 17.52 5.04 15.36 8.88C14.4 8.4 13.2 8.16 12 8.16C7.68 8.16 4.08 11.52 3.84 15.84C1.68 16.56 0 18.48 0 20.88C0 23.76 2.4 26.16 5.28 26.16H38.16C42.48 26.16 46.08 22.56 46.08 18.24C46.08 14.4 43.68 11.04 40.08 10.08L38.4 13.44Z" fill="#3448C5"/><path d="M24 10L18 18H22V26H26V18H30L24 10Z" fill="white"/></svg>,
+                      title: "Cloudinary optimises",
+                      desc: "Auto-selects WebP / AVIF, smart-crops, quality-tunes, and delivers via global CDN.",
+                    },
+                    {
+                      dot: "bg-emerald-50 border border-emerald-200 text-emerald-600",
+                      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+                      title: "Faster. Lighter. Greener.",
+                      desc: "Up to 80% smaller files, 3× faster loads, and measurably less CO₂ per page view.",
+                    },
+                  ].map((step, i, arr) => (
+                    <div key={step.title} className="relative flex gap-4">
+                      {/* Dashed connector line (not last) */}
+                      {i < arr.length - 1 && (
+                        <div
+                          className="absolute left-[19px] top-10 w-px"
+                          style={{
+                            bottom: "-8px",
+                            background: "repeating-linear-gradient(to bottom, #e5e7eb 0, #e5e7eb 4px, transparent 4px, transparent 10px)",
+                          }}
+                          aria-hidden="true"
+                        />
+                      )}
+                      {/* Node */}
+                      <div className={`relative z-10 mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${step.dot}`}>
+                        {step.icon}
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-ec-ink">{f.title}</p>
-                        <p className="mt-1 text-xs leading-relaxed text-ec-muted">{f.detail}</p>
+                      {/* Content */}
+                      <div className="pb-9">
+                        <p className="text-sm font-bold text-ec-ink">{step.title}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-ec-muted">{step.desc}</p>
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {/* RIGHT — 2×3 feature cards */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", label: "Real-Time Analysis",  sub: "Scan any public URL and get a full media audit in seconds.",          bg: "bg-blue-50",    border: "border-blue-100",    stroke: "#3b82f6" },
+                    { icon: "M8 7h12m0 0l-4-4m4 4-4 4m0 6H4m0 0 4 4m-4-4 4-4",                                                                                                 label: "Before / After",    sub: "Visual diff of original vs Cloudinary-optimised delivery.",        bg: "bg-violet-50", border: "border-violet-100", stroke: "#7c3aed" },
+                    { icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",   label: "Performance Score", sub: "Bandwidth saved, load time delta, and Lighthouse impact.",        bg: "bg-amber-50",  border: "border-amber-100",  stroke: "#d97706" },
+                    { icon: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z",                                         label: "Carbon Tracking",   sub: "Translate bytes saved into grams of CO₂ avoided, per page.",     bg: "bg-emerald-50",border: "border-emerald-100",stroke: "#059669" },
+                    { icon: "M13 10V3L4 14h7v7l9-11h-7z",                                                                                                                         label: "AI Optimisation",   sub: "Cloudinary AI picks the best format, crop, and quality — automatically.", bg: "bg-rose-50",   border: "border-rose-100",   stroke: "#e11d48" },
+                    { icon: "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4",                                                                                                             label: "One-Line Setup",    sub: "A single script tag — no build step, no migration, instant results.", bg: "bg-cyan-50",   border: "border-cyan-100",   stroke: "#0891b2" },
+                  ].map((f, i) => (
+                    <div
+                      key={f.label}
+                      className="group rounded-xl border border-ec-hairline bg-ec-canvas p-4 transition-shadow hover:shadow-sm"
+                      data-reveal
+                      data-reveal-delay={String(Math.min(i * 70, 350))}
+                      style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+                    >
+                      <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border ${f.border} ${f.bg}`}>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={f.stroke} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d={f.icon}/>
+                        </svg>
+                      </div>
+                      <p className="mt-3 text-sm font-bold text-ec-ink">{f.label}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-ec-muted">{f.sub}</p>
+                    </div>
+                  ))}
+                </div>
+
               </div>
             </div>
           </section>
@@ -304,7 +340,7 @@ export default function Home() {
             <div className="ec-container grid items-center gap-12 lg:grid-cols-[1fr_1fr]">
               <div data-reveal>
                 <p className="text-xs uppercase tracking-[0.2em] text-ec-muted">SDK integration</p>
-                <h2 className="ec-display mt-4 text-3xl font-semibold">Add EcoLens in Seconds</h2>
+                <h2 className="ec-display mt-4 text-3xl">Two tags. Live in 60 seconds.</h2>
                 <p className="mt-4 text-sm text-ec-body">One script tag. Zero refactoring. Instant Cloudinary-powered delivery for every image on your page.</p>
                 <div className="mt-8 space-y-3">
                   {[
@@ -348,7 +384,7 @@ export default function Home() {
           <section className="ec-section border-t border-ec-hairline-soft">
             <div className="ec-container">
               <div className="text-center" data-reveal>
-                <h2 className="ec-display text-3xl font-semibold md:text-4xl">The Numbers Speak</h2>
+                <h2 className="ec-display text-3xl md:text-4xl">The numbers don&rsquo;t lie.</h2>
                 <p className="mt-3 text-sm text-ec-muted">Better performance. Lower cost. Smaller footprint.</p>
               </div>
               <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

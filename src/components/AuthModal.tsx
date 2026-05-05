@@ -23,7 +23,8 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     if (!supabase) return;
     setLoading(true);
     setMessage(null);
-    const { error } = await supabase.auth.signInWithOAuth({ provider });
+    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined;
+    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
     if (error) setMessage(error.message);
     setLoading(false);
   };
@@ -39,12 +40,11 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     const { error } = await action;
     if (error) {
       setMessage(error.message);
+    } else if (mode === "signin") {
+      onClose();
+      window.location.href = "/dashboard";
     } else {
-      setMessage(
-        mode === "signin"
-          ? "Signed in successfully."
-          : "Check your email to confirm your account."
-      );
+      setMessage("Check your email to confirm your account.");
     }
     setLoading(false);
   };

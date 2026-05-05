@@ -189,7 +189,7 @@ export default function Testimonials() {
                   <span className="absolute -bottom-px -left-px text-ec-hairline select-none">+</span>
                   <span className="absolute -bottom-px -right-px text-ec-hairline select-none">+</span>
 
-                  <p className="text-xl font-semibold leading-snug text-ec-ink">
+                  <p className="text-2xl font-bold leading-snug text-ec-ink">
                     &ldquo;{item.quote}&rdquo;
                   </p>
                   <div className="mt-6 flex items-center gap-3">
