@@ -1,48 +1,43 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell,
-} from "recharts";
+import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { supabase } from "@/lib/supabaseClient";
-import type { ScanResult, OptimizationMode } from "@/lib/types";
+import type { ScanResult } from "@/lib/types";
 import { formatBytes, formatPercent, formatMb } from "@/lib/format";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
-const MODES: { value: OptimizationMode; label: string; icon: string; desc: string }[] = [
-  { value: "performance", label: "⚡ Performance", icon: "⚡", desc: "q_auto:eco — max speed" },
-  { value: "quality",     label: "🎨 Quality",     icon: "🎨", desc: "q_auto:best — crisp output" },
-  { value: "eco",         label: "🌱 Eco",          icon: "🌱", desc: "Aggressive compression" },
-];
+type WizardStep = "source" | "input" | "scanning" | "results" | "solutions";
+type ScanType = "website" | "github";
 
-const COLORS = ["#111111", "#6b7280", "#d1d5db"];
-
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Auth
-  const [authed,    setAuthed]    = useState(false);
+  const [authed, setAuthed] = useState(false);
   const [authReady, setAuthReady] = useState(false);
-  const [userName,  setUserName]  = useState("");
+  const [userName, setUserName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // Scan flow  — 3 steps: "input" | "scanning" | "report"
-  const [step,            setStep]            = useState<"input" | "scanning" | "report">("input");
-  const [url,             setUrl]             = useState("");
-  const [mode,            setMode]            = useState<OptimizationMode>("performance");
-  const [result,          setResult]          = useState<ScanResult | null>(null);
-  const [error,           setError]           = useState<string | null>(null);
-  const [optimizedBlobUrl, setOptimizedBlobUrl] = useState<string | null>(null);
-  const [iframeFullscreen, setIframeFullscreen] = useState<"before" | "after" | null>(null);
+  // Wizard State
+  const [step, setStep] = useState<WizardStep>("source");
+  const [scanType, setScanType] = useState<ScanType>("website");
+  const [url, setUrl] = useState("");
+  const [manualRepo, setManualRepo] = useState(""); // For website scans needing PR
+  const [result, setResult] = useState<ScanResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [solutionType, setSolutionType] = useState<"sdk" | "pr" | "prompt" | null>(null);
+  const [isPrCreating, setIsPrCreating] = useState(false);
+  const [prUrl, setPrUrl] = useState<string | null>(null);
 
   /* ── Auth gate ── */
   useEffect(() => {
-    if (!supabase) { setAuthReady(true); return; }
+    if (!supabase) {
+      setAuthReady(true);
+      return;
+    }
 
     supabase.auth.getSession().then(({ data }) => {
       const session = data.session;
@@ -66,100 +61,158 @@ export default function DashboardPage() {
     return () => { data.subscription.unsubscribe(); };
   }, []);
 
+  /* ── Detect PR completion or pending PR ── */
+  useEffect(() => {
+    if (!authReady || !authed || !supabase) return;
+
+    const checkPr = async () => {
+      const isPrReady = searchParams.get("pr_ready") === "true";
+      const savedResult = localStorage.getItem("ecolens_pending_scan");
+      const savedRepo = localStorage.getItem("ecolens_target_repo");
+
+      if (isPrReady && savedResult && supabase) {
+        const parsedResult: ScanResult = JSON.parse(savedResult);
+        setResult(parsedResult);
+        setStep("solutions");
+        setSolutionType("pr");
+        setIsPrCreating(true);
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = (session as any)?.provider_token;
+
+        if (!token) {
+          setError("GitHub token not found. Please try authorizing again.");
+          setIsPrCreating(false);
+          return;
+        }
+
+        // Parse owner/repo from scan result or manual repo
+        let owner = (parsedResult as any).owner;
+        let repo = (parsedResult as any).repo;
+
+        if (!owner || !repo) {
+          if (savedRepo) {
+            const parts = savedRepo.split("/");
+            if (parts.length === 2) {
+              owner = parts[0];
+              repo = parts[1];
+            }
+          }
+        }
+
+        if (!owner || !repo) {
+          setError("Could not identify repository owner/repo. Please provide it in the input.");
+          setIsPrCreating(false);
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/github/create-pr", {
+            // biome-ignore lint/style/useNamingConvention: github api
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token, owner, repo, scanResult: parsedResult }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setPrUrl(data.prUrl);
+            localStorage.removeItem("ecolens_pending_scan");
+            localStorage.removeItem("ecolens_target_repo");
+          } else {
+            throw new Error(data.error || "PR creation failed");
+          }
+        } catch (e: any) {
+          setError(e.message);
+        } finally {
+          setIsPrCreating(false);
+        }
+      }
+    };
+
+    checkPr();
+  }, [authReady, authed, searchParams, supabase]);
+
   /* ── Redirect to home if not authed ── */
   useEffect(() => {
     if (authReady && !authed) router.replace("/");
   }, [authReady, authed, router]);
 
-  /* ── Blob URL for optimized iframe (srcDoc loses base URL context → black screen) ── */
-  useEffect(() => {
-    if (!result?.optimizedHtml) {
-      setOptimizedBlobUrl(null);
+  const runScan = useCallback(async () => {
+    if (!url.trim()) {
+      setError("Please enter a valid URL or Repo.");
       return;
     }
-    const blob = new Blob([result.optimizedHtml], { type: "text/html" });
-    const blobUrl = URL.createObjectURL(blob);
-    setOptimizedBlobUrl(blobUrl);
-    return () => URL.revokeObjectURL(blobUrl);
-  }, [result?.optimizedHtml]);
-
-  /* ── Scan ── */
-  const runScan = useCallback(async () => {
-    if (!url.trim()) { setError("Please enter a website URL."); return; }
-    const normalized = url.trim().startsWith("http") ? url.trim() : `https://${url.trim()}`;
-    try { new URL(normalized); } catch { setError("Please enter a valid URL."); return; }
-
     setError(null);
     setStep("scanning");
 
+    const endpoint = scanType === "github" ? "/api/github-scan" : "/api/scan";
+
     try {
-      const res = await fetch("/api/scan", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: normalized, mode }),
+        body: JSON.stringify({ url: url.trim(), mode: "performance" }),
       });
-      if (!res.ok) throw new Error("Scan failed. Try a different URL.");
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Scan failed.");
+      }
       const data: ScanResult = await res.json();
       setResult(data);
-      setStep("report");
+      setStep("results");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStep("input");
     }
-  }, [url, mode]);
+  }, [url, scanType]);
 
-  /* ── PDF download ── */
-  const downloadPdf = useCallback(async () => {
-    if (!result) return;
-    const doc = await PDFDocument.create();
-    const page = doc.addPage([595, 842]);
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-    const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const handleGithubAuth = async () => {
+    if (!supabase || !result) return;
+    
+    // Validate manual repo if needed
+    const needsRepo = !(result as any).owner || !(result as any).repo;
+    if (needsRepo && !manualRepo.trim()) {
+      setError("Please provide a repository (owner/repo) to optimize.");
+      return;
+    }
 
-    const t = (text: string, x: number, y: number, size = 11, color = rgb(0.1, 0.1, 0.1), f = font) =>
-      page.drawText(text, { x, y, size, color, font: f });
+    // Save state
+    localStorage.setItem("ecolens_pending_scan", JSON.stringify(result));
+    if (manualRepo) {
+      localStorage.setItem("ecolens_target_repo", manualRepo.trim());
+    }
 
-    t("EcoLens Optimization Report", 50, 800, 22, rgb(0, 0, 0), bold);
-    t(`Site: ${result.targetUrl}`, 50, 770, 10);
-    t(`Generated: ${new Date(result.createdAt).toLocaleString()}`, 50, 756, 10);
-    t(`Mode: ${result.mode}`, 50, 742, 10);
-
-    t("Summary", 50, 710, 14, rgb(0, 0, 0), bold);
-    t(`Total media assets: ${result.totals.imageCount + result.totals.videoCount}`, 50, 692);
-    t(`Original total size: ${formatBytes(result.totals.originalBytes)}`, 50, 676);
-    t(`Optimized size: ${formatBytes(result.totals.optimizedBytes)}`, 50, 660);
-    t(`Size reduction: ${formatPercent(result.metrics.reductionPercent)}`, 50, 644);
-    t(`Bandwidth saved: ${result.metrics.bandwidthSavedMb.toFixed(2)} MB`, 50, 628);
-    t(`CO₂ saved: ${result.metrics.co2SavedGrams.toFixed(2)} g/page`, 50, 612);
-    t(`Load time improvement: ${formatPercent(result.metrics.loadTimeImprovementPercent)}`, 50, 596);
-    t(`Eco score: ${result.metrics.ecoScoreBefore} → ${result.metrics.ecoScoreAfter}`, 50, 580);
-
-    t("Cloudinary Transform Applied", 50, 548, 14, rgb(0, 0, 0), bold);
-    t(result.cloudinary.imageTransform, 50, 530, 9, rgb(0.2, 0.2, 0.8));
-
-    t("Top Offenders (by bytes wasted)", 50, 498, 14, rgb(0, 0, 0), bold);
-    result.topOffenders.slice(0, 5).forEach((item, i) => {
-      const y = 478 - i * 40;
-      const urlDisplay = item.originalUrl.length > 80 ? item.originalUrl.slice(0, 77) + "..." : item.originalUrl;
-      t(`${i + 1}. ${urlDisplay}`, 50, y, 8);
-      t(`   Original: ${formatBytes(item.originalBytes)}  →  Optimized: ${formatBytes(item.optimizedBytes)}  (save ${formatBytes(item.savingsBytes)})`, 50, y - 12, 8, rgb(0.4, 0.4, 0.4));
-      t(`   Fix: Convert to ${item.formatAfter} via ${result.cloudinary.imageTransform}`, 50, y - 24, 8, rgb(0.2, 0.5, 0.2));
+    setIsPrCreating(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        scopes: "repo",
+        redirectTo: window.location.origin + "/dashboard?pr_ready=true",
+      },
     });
 
-    const bytes = await doc.save();
-    // Use bytes directly (not bytes.buffer) to avoid slice-of-larger-buffer corruption
-    const blob = new Blob([bytes], { type: "application/pdf" });
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = `ecolens-report-${new Date().toISOString().slice(0, 10)}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    if (error) {
+      setError("Authorization failed: " + error.message);
+      setIsPrCreating(false);
+    }
+  };
+
+  const aiPrompt = useMemo(() => {
+    if (!result) return "";
+    return `Optimize my website's images to reduce CO2 emissions and improve performance. 
+Found ${result.totals.imageCount} images with a total size of ${formatMb(result.totals.originalBytes)} MB.
+Suggested Cloudinary transformations: ${result.cloudinary.imageTransform}.
+Top offenders to fix:
+${result.topOffenders.map(o => `- ${o.originalUrl} (${formatBytes(o.originalBytes)})`).join("\n")}
+Please write a React/Next.js component or a script to automate this using Cloudinary Fetch API.`;
   }, [result]);
 
-  /* ── Loading auth ── */
+  const sdkSnippet = `<script 
+  src="https://ecolens.cloudinary.com/v1/sdk.js" 
+  data-cloud="${result?.cloudinary.cloudName || "your-cloud"}"
+  async
+></script>`;
+
   if (!authReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ec-canvas">
@@ -168,393 +221,365 @@ export default function DashboardPage() {
     );
   }
 
-  /* ── Chart data ── */
-  const barData = result ? [
-    { name: "Original", value: +formatMb(result.totals.originalBytes) },
-    { name: "Optimized", value: +formatMb(result.totals.optimizedBytes) },
-  ] : [];
-
-  const greeting = userName ? `Hey, ${userName.split(" ")[0]} 👋` : "Welcome back 👋";
-
   return (
-    <div className="flex min-h-screen flex-col bg-ec-canvas text-ec-ink">
+    <div className="flex min-h-screen flex-col bg-ec-canvas text-ec-ink selection:bg-ec-brand/10">
       <Header />
 
-      <main className="flex-1">
-        {/* ── Top bar ── */}
-        <div className="border-b border-ec-hairline bg-ec-surface-soft px-6 py-5">
-          <div className="ec-container flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt={userName} width={44} height={44} className="h-11 w-11 rounded-full border border-ec-hairline object-cover" />
-              ) : (
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-ec-ink text-sm font-bold text-white">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div>
-                <p className="ec-display text-xl font-bold text-ec-ink">{greeting}</p>
-                <p className="text-xs text-ec-muted">EcoLens Dashboard</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              {result && (
-                <button onClick={() => { setStep("input"); setResult(null); }} className="ec-button-secondary">
-                  New Scan
-                </button>
-              )}
-              {result && (
-                <button id="download-pdf-btn" onClick={downloadPdf} className="ec-button-primary flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Download PDF
-                </button>
-              )}
-            </div>
-          </div>
+      <main className="relative flex flex-1 flex-col items-center justify-center p-6">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-ec-brand/5 blur-[120px]" />
+          <div className="absolute -bottom-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-ec-success/5 blur-[120px]" />
         </div>
 
-        <div className="ec-container py-10">
+        <div className="wiz-step relative z-10 w-full max-w-4xl overflow-hidden rounded-3xl border border-ec-hairline bg-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)]">
 
-          {/* ═══ STEP 1: URL INPUT ═══ */}
-          {step === "input" && (
-            <div className="mx-auto max-w-2xl">
-              <div className="text-center">
-                <p className="text-xs uppercase tracking-[0.25em] text-ec-muted">Step 1 of 2</p>
-                <h1 className="ec-display mt-4 text-4xl">Analyse a website</h1>
-                <p className="mt-3 text-sm text-ec-muted">Paste any public URL — EcoLens will extract every image and video, run Cloudinary transforms, and generate a full report.</p>
-              </div>
+          <div className="h-1 w-full bg-ec-hairline-soft">
+            <div
+              className="h-full bg-ec-brand transition-all duration-500 ease-out"
+              style={{
+                width:
+                  step === "source" ? "20%" :
+                    step === "input" ? "40%" :
+                      step === "scanning" ? "60%" :
+                        step === "results" ? "80%" : "100%"
+              }}
+            />
+          </div>
 
-              {/* Mode picker */}
-              <div className="mt-10 grid grid-cols-3 gap-3">
-                {MODES.map((m) => (
+          <div className="p-8 md:p-12">
+
+            {step === "source" && (
+              <div className="wiz-step flex flex-col items-center text-center">
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-ec-brand/10 text-ec-brand">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></svg>
+                </div>
+                <h1 className="ec-display text-4xl mb-4">Let's start scanning</h1>
+                <p className="text-ec-muted mb-10 max-w-md">Select your preferred method to identify media optimization opportunities.</p>
+
+                <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
                   <button
-                    key={m.value}
-                    id={`mode-${m.value}`}
-                    onClick={() => setMode(m.value)}
-                    className={`rounded-xl border p-4 text-left transition ${
-                      mode === m.value
-                        ? "border-ec-ink bg-ec-ink text-white"
-                        : "border-ec-hairline bg-ec-canvas text-ec-body hover:border-ec-ink/30"
-                    }`}
+                    onClick={() => { setScanType("website"); setStep("input"); }}
+                    className="group flex flex-col items-start rounded-2xl border border-ec-hairline p-6 text-left transition-all hover:border-ec-brand hover:bg-ec-brand/[0.02]"
                   >
-                    <p className="text-lg">{m.icon}</p>
-                    <p className="mt-1 text-sm font-bold">{m.label.replace(/^[^ ]+ /, "")}</p>
-                    <p className={`mt-0.5 text-xs ${mode === m.value ? "text-white/70" : "text-ec-muted"}`}>{m.desc}</p>
-                  </button>
-                ))}
-              </div>
-
-              {/* URL input */}
-              <div className="mt-6 rounded-xl border border-ec-hairline bg-ec-canvas p-5">
-                <label htmlFor="scan-url" className="text-xs font-semibold uppercase tracking-[0.2em] text-ec-muted">
-                  Website URL
-                </label>
-                <div className="mt-3 flex gap-3">
-                  <input
-                    id="scan-url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && runScan()}
-                    placeholder="https://yourwebsite.com"
-                    className="ec-input flex-1"
-                    autoFocus
-                  />
-                  <button id="start-scan-btn" onClick={runScan} className="ec-button-primary px-6">
-                    Scan
-                  </button>
-                </div>
-                {error && <p className="mt-3 text-sm text-ec-error">{error}</p>}
-              </div>
-
-              <p className="mt-4 text-center text-xs text-ec-muted">
-                Applies: <code className="rounded bg-ec-surface-soft px-1 py-0.5 font-mono text-[11px]">f_auto,q_auto,w_auto,dpr_auto,g_auto,e_sharpen</code>
-              </p>
-            </div>
-          )}
-
-          {/* ═══ STEP 2: SCANNING ═══ */}
-          {step === "scanning" && (
-            <div className="flex flex-col items-center justify-center py-32">
-              <div className="relative flex h-20 w-20 items-center justify-center">
-                <div className="absolute inset-0 animate-spin rounded-full border-2 border-ec-ink border-t-transparent" />
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ec-ink" aria-hidden="true">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                </svg>
-              </div>
-              <p className="mt-6 text-xl font-bold text-ec-ink">Analysing {url}</p>
-              <p className="mt-2 text-sm text-ec-muted">Extracting media · Running Cloudinary transforms · Computing metrics</p>
-              <div className="mt-8 flex gap-3 text-xs text-ec-muted">
-                {["image/fetch", "f_auto", "q_auto", "g_auto", "e_sharpen"].map((tag) => (
-                  <span key={tag} className="animate-pulse rounded-full border border-ec-hairline px-2.5 py-1 font-mono">{tag}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ═══ STEP 3: REPORT ═══ */}
-          {step === "report" && result && (
-            <div className="flex flex-col gap-8">
-
-              {/* Breadcrumb */}
-              <div className="flex items-center gap-2 text-xs text-ec-muted">
-                <Link href="/dashboard" className="hover:text-ec-ink">Dashboard</Link>
-                <span>/</span>
-                <span className="text-ec-ink font-medium truncate max-w-sm">{result.targetUrl}</span>
-              </div>
-
-              {/* ── KPI row ── */}
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                {[
-                  { label: "Size reduced",     value: formatPercent(result.metrics.reductionPercent),            sub: `${formatBytes(result.totals.savingsBytes)} saved`,         color: "text-emerald-600" },
-                  { label: "Bandwidth saved",   value: `${result.metrics.bandwidthSavedMb.toFixed(1)} MB`,        sub: `from ${formatBytes(result.totals.originalBytes)}`,          color: "text-blue-600"    },
-                  { label: "CO₂ avoided",       value: `${result.metrics.co2SavedGrams.toFixed(1)} g`,            sub: "per page view",                                            color: "text-green-600"   },
-                  { label: "Load time delta",   value: formatPercent(result.metrics.loadTimeImprovementPercent),  sub: "estimated improvement",                                    color: "text-violet-600"  },
-                ].map((kpi) => (
-                  <div key={kpi.label} className="rounded-xl border border-ec-hairline bg-ec-canvas p-5" style={{ boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-ec-muted">{kpi.label}</p>
-                    <p className={`ec-display mt-2 text-3xl font-black ${kpi.color}`}>{kpi.value}</p>
-                    <p className="mt-1 text-xs text-ec-muted">{kpi.sub}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* ── Before site + Image comparison ── */}
-              <div className="grid gap-4 lg:grid-cols-2">
-
-                {/* Before: live iframe of original site */}
-                <div className="rounded-xl border border-ec-hairline overflow-hidden">
-                  <div className="flex items-center gap-2 border-b border-ec-hairline bg-ec-surface-soft px-4 py-2.5">
-                    <span className="h-2 w-2 rounded-full bg-red-400"/>
-                    <p className="text-xs font-semibold text-ec-muted uppercase tracking-[0.15em]">Before — Original</p>
-                    <div className="ml-auto flex gap-1.5">
-                      <button
-                        onClick={() => setIframeFullscreen("before")}
-                        className="rounded-md border border-ec-hairline bg-ec-canvas px-2 py-1 text-[10px] text-ec-muted transition hover:text-ec-ink"
-                      >
-                        ⛶ Expand
-                      </button>
-                      <a href={result.targetUrl} target="_blank" rel="noopener noreferrer"
-                        className="rounded-md border border-ec-hairline bg-ec-canvas px-2 py-1 text-[10px] text-ec-muted transition hover:text-ec-ink"
-                      >
-                        ↗ Open
-                      </a>
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-ec-surface-soft group-hover:bg-ec-brand/10 group-hover:text-ec-brand transition-colors">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
                     </div>
-                  </div>
-                  <div className="h-72 bg-white">
-                    <iframe title="Original site" src={result.targetUrl} className="h-full w-full" />
-                  </div>
-                </div>
+                    <h3 className="font-bold text-lg mb-1">Website URL</h3>
+                    <p className="text-sm text-ec-muted">Scan any live public website for images and videos.</p>
+                  </button>
 
-                {/* After: actual image-by-image comparison grid */}
-                <div className="rounded-xl border border-ec-hairline overflow-hidden">
-                  <div className="flex items-center gap-2 border-b border-ec-hairline bg-ec-surface-soft px-4 py-2.5">
-                    <span className="h-2 w-2 rounded-full bg-green-400"/>
-                    <p className="text-xs font-semibold text-ec-muted uppercase tracking-[0.15em]">After — Cloudinary Optimised</p>
-                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 border border-emerald-100 ml-auto">
-                      {formatPercent(result.metrics.reductionPercent)} lighter
-                    </span>
-                  </div>
-                  <div className="h-72 overflow-y-auto bg-ec-canvas p-3">
-                    {result.media.filter(i => i.type === "image").length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        {result.media.filter(i => i.type === "image").slice(0, 8).map((item) => (
-                          <div key={item.id} className="rounded-lg border border-ec-hairline bg-white overflow-hidden">
-                            {/* Side-by-side thumbnails */}
-                            <div className="grid grid-cols-2 divide-x divide-ec-hairline h-20">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={item.originalUrl}
-                                alt="Original"
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                              />
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={item.optimizedUrl}
-                                alt="Optimised"
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between px-2 py-1.5">
-                              <span className="text-[10px] text-ec-muted">{item.formatBefore} → {item.formatAfter}</span>
-                              <span className="text-[10px] font-bold text-emerald-600">-{formatBytes(item.savingsBytes)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex h-full flex-col items-center justify-center gap-3 text-center px-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 border border-amber-100">
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-ec-ink">No static images found</p>
-                          <p className="mt-1 text-xs text-ec-muted leading-relaxed">
-                            This site likely uses JavaScript to render images dynamically.<br/>
-                            Try a content-heavy site like a blog or e-commerce store.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    onClick={() => { setScanType("github"); setStep("input"); }}
+                    className="group flex flex-col items-start rounded-2xl border border-ec-hairline p-6 text-left transition-all hover:border-ec-brand hover:bg-ec-brand/[0.02]"
+                  >
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-ec-surface-soft group-hover:bg-ec-brand/10 group-hover:text-ec-brand transition-colors">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" /></svg>
+                    </div>
+                    <h3 className="font-bold text-lg mb-1">GitHub Repository</h3>
+                    <p className="text-sm text-ec-muted">Directly analyze images within your codebase.</p>
+                  </button>
                 </div>
               </div>
+            )}
 
-              {/* ── Fullscreen overlay (original only) ── */}
-              {iframeFullscreen && (
-                <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
-                  <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
-                    <p className="text-sm font-semibold text-white">
-                      {iframeFullscreen === "before" ? `Before — ${result.targetUrl}` : "After — Image Comparison"}
-                    </p>
+            {step === "input" && (
+              <div className="wiz-step flex flex-col items-center">
+                <button
+                  onClick={() => setStep("source")}
+                  className="mb-8 self-start text-xs font-bold uppercase tracking-widest text-ec-muted hover:text-ec-ink transition-colors flex items-center gap-2"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                  Back
+                </button>
+
+                <h2 className="ec-display text-3xl mb-8 text-center">
+                  {scanType === "website" ? "Enter Website URL" : "Enter GitHub Link"}
+                </h2>
+
+                <div className="w-full max-w-lg">
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && runScan()}
+                      placeholder={scanType === "website" ? "https://example.com" : "owner/repo or GitHub URL"}
+                      className="w-full rounded-2xl border border-ec-hairline bg-ec-surface-soft p-6 pr-32 text-lg outline-none transition-all focus:border-ec-brand focus:ring-4 focus:ring-ec-brand/5 group-hover:border-ec-muted"
+                      autoFocus
+                    />
                     <button
-                      onClick={() => setIframeFullscreen(null)}
-                      className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-white/70 transition hover:text-white"
+                      onClick={runScan}
+                      className="absolute right-3 top-3 bottom-3 rounded-xl bg-ec-brand px-6 font-bold text-white transition-transform hover:scale-[1.02] active:scale-95"
                     >
-                      ✕ Close
+                      Next
                     </button>
                   </div>
-                  <div className="flex-1 bg-white">
-                    <iframe title="Original site fullscreen" src={result.targetUrl} className="h-full w-full" />
-                  </div>
-                </div>
-              )}
-
-              {/* ── Charts row ── */}
-              <div className="grid gap-4 lg:grid-cols-3">
-                {/* Bar chart */}
-                <div className="col-span-2 rounded-xl border border-ec-hairline bg-ec-canvas p-5">
-                  <p className="text-xs uppercase tracking-[0.2em] text-ec-muted">Media size comparison (MB)</p>
-                  <div className="mt-4 h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={barData} barSize={56}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                        <XAxis dataKey="name" stroke="#9ca3af" tick={{ fontSize: 12 }} />
-                        <YAxis stroke="#9ca3af" tick={{ fontSize: 11 }} />
-                        <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 12 }} />
-                        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                          <Cell fill="#111111" />
-                          <Cell fill="#10b981" />
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Eco score radial */}
-                <div className="rounded-xl border border-ec-hairline bg-ec-canvas p-5">
-                  <p className="text-xs uppercase tracking-[0.2em] text-ec-muted">Eco score</p>
-                  <div className="mt-4 flex flex-col items-center">
-                    <div className="relative">
-                      <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
-                        <circle cx="60" cy="60" r="50" fill="none" stroke="#f3f4f6" strokeWidth="12"/>
-                        <circle
-                          cx="60" cy="60" r="50"
-                          fill="none" stroke="#10b981" strokeWidth="12"
-                          strokeDasharray={`${(result.metrics.ecoScoreAfter / 100) * 314} 314`}
-                          strokeLinecap="round"
-                          transform="rotate(-90 60 60)"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="ec-display text-2xl font-black text-ec-ink">{result.metrics.ecoScoreAfter}</span>
-                        <span className="text-[10px] text-ec-muted">/100</span>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-sm text-ec-muted">
-                      Was <span className="font-semibold text-ec-ink">{result.metrics.ecoScoreBefore}</span> → now <span className="font-semibold text-emerald-600">{result.metrics.ecoScoreAfter}</span>
-                    </p>
-                  </div>
-                  {/* Mini stats */}
-                  <div className="mt-4 space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-ec-muted">Images</span>
-                      <span className="font-semibold text-ec-ink">{result.totals.imageCount}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-ec-muted">Videos</span>
-                      <span className="font-semibold text-ec-ink">{result.totals.videoCount}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-ec-muted">Mode</span>
-                      <span className="font-semibold text-ec-ink capitalize">{result.mode}</span>
-                    </div>
-                  </div>
+                  {error && <p className="mt-4 text-center text-sm text-ec-error font-medium">{error}</p>}
                 </div>
               </div>
+            )}
 
-              {/* ── Top offenders table ── */}
-              <div className="rounded-xl border border-ec-hairline bg-ec-canvas overflow-hidden">
-                <div className="flex items-center justify-between border-b border-ec-hairline bg-ec-surface-soft px-5 py-3.5">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-ec-muted">Top offenders</p>
-                    <p className="ec-display mt-0.5 text-lg font-bold">Heaviest assets to fix first</p>
+            {step === "scanning" && (
+              <div className="wiz-step flex flex-col items-center justify-center py-12 text-center">
+                <div className="relative mb-10 h-32 w-32">
+                  <div className="wiz-pulse-ring absolute inset-0 rounded-full bg-ec-brand/10" />
+                  <div className="wiz-spin absolute inset-0 rounded-full border-4 border-ec-brand border-t-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center text-ec-brand">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4" /><path d="m16.2 7.8 2.9-2.9" /><path d="M18 12h4" /><path d="m16.2 16.2 2.9 2.9" /><path d="M12 18v4" /><path d="m4.9 19.1 2.9-2.9" /><path d="M2 12h4" /><path d="m4.9 4.9 2.9 2.9" /></svg>
                   </div>
-                  <span className="text-xs text-ec-muted">Sorted by bytes wasted</span>
                 </div>
-                <div className="overflow-x-auto">
+                <h2 className="ec-display text-3xl mb-4 italic">Optimizing Your Perspective...</h2>
+                <p className="text-ec-muted max-w-sm">We're extracting every image, calculating CO2 impact, and preparing your eco-report.</p>
+                <div className="mt-12 flex gap-2">
+                  <div className="wiz-dot h-3 w-3 rounded-full bg-ec-brand" />
+                  <div className="wiz-dot h-3 w-3 rounded-full bg-ec-brand" />
+                  <div className="wiz-dot h-3 w-3 rounded-full bg-ec-brand" />
+                </div>
+              </div>
+            )}
+
+            {step === "results" && result && (
+              <div className="wiz-step flex flex-col">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+                  <div>
+                    <h2 className="ec-display text-3xl mb-2">Scan Complete</h2>
+                    <p className="text-ec-muted truncate max-w-md italic">Analyzing {result.targetUrl}</p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="rounded-xl border border-ec-hairline bg-ec-surface-soft px-4 py-2 text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-ec-muted font-bold">Reduction</p>
+                      <p className="text-xl font-black text-ec-success">{formatPercent(result.metrics.reductionPercent)}</p>
+                    </div>
+                    <div className="rounded-xl border border-ec-hairline bg-ec-surface-soft px-4 py-2 text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-ec-muted font-bold">CO2 Saved</p>
+                      <p className="text-xl font-black text-ec-brand">{result.metrics.co2SavedGrams.toFixed(1)}g</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-10 rounded-2xl bg-ec-surface-dark p-6 text-white shadow-xl">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ec-success/20 text-ec-success">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /></svg>
+                    </div>
+                    <h4 className="font-bold text-lg italic text-ec-success">Cloudinary EcoLens Impact</h4>
+                  </div>
+                  <p className="text-sm leading-relaxed text-ec-on-dark-soft">
+                    Your website is currently burning <span className="text-white font-bold">{formatMb(result.totals.originalBytes)} MB</span> per load.
+                    Cloudinary's <code className="bg-white/10 px-1.5 py-0.5 rounded text-ec-success">f_auto, q_auto</code> will
+                    improve speed by <span className="text-white font-bold">{formatPercent(result.metrics.loadTimeImprovementPercent)}</span> and slash emissions.
+                  </p>
+                </div>
+
+                <div className="mb-10 max-h-72 overflow-y-auto rounded-xl border border-ec-hairline">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-ec-surface-soft text-[11px] uppercase tracking-[0.15em] text-ec-muted">
+                    <thead className="sticky top-0 bg-ec-surface-soft text-[10px] uppercase tracking-widest text-ec-muted">
                       <tr>
-                        <th className="px-5 py-3">#</th>
-                        <th className="px-5 py-3">Asset URL</th>
-                        <th className="px-5 py-3">Format</th>
-                        <th className="px-5 py-3">Original</th>
-                        <th className="px-5 py-3">Optimised</th>
-                        <th className="px-5 py-3">Saved</th>
-                        <th className="px-5 py-3">Fix</th>
+                        <th className="px-6 py-4">Image Asset</th>
+                        <th className="px-6 py-4">Original</th>
+                        <th className="px-6 py-4">Optimized</th>
+                        <th className="px-6 py-4">Eco Gain</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {result.topOffenders.map((item, i) => (
-                        <tr key={item.id} className="border-t border-ec-hairline hover:bg-ec-surface-soft/50">
-                          <td className="px-5 py-3 text-xs tabular-nums text-ec-muted">{i + 1}</td>
-                          <td className="px-5 py-3 text-xs text-ec-body max-w-xs">
-                            <span className="block truncate" title={item.originalUrl}>{item.originalUrl}</span>
+                    <tbody className="divide-y divide-ec-hairline">
+                      {result.topOffenders.map((item) => (
+                        <tr key={item.id} className="hover:bg-ec-surface-soft/50 transition-colors">
+                          <td className="px-6 py-4 max-w-[200px] truncate font-medium text-xs italic">{item.originalUrl.split('/').pop()}</td>
+                          <td className="px-6 py-4 text-ec-muted">{formatBytes(item.originalBytes)}</td>
+                          <td className="px-6 py-4 font-bold text-ec-success">{formatBytes(item.optimizedBytes)}</td>
+                          <td className="px-6 py-4">
+                            <span className="rounded-full bg-ec-brand/10 px-2 py-1 text-[10px] font-bold text-ec-brand">
+                              -{formatPercent(item.savingsBytes / item.originalBytes)}
+                            </span>
                           </td>
-                          <td className="px-5 py-3">
-                            <span className="rounded bg-ec-surface-soft px-1.5 py-0.5 text-[11px] font-mono text-ec-muted">{item.formatBefore}</span>
-                          </td>
-                          <td className="px-5 py-3 text-xs font-medium text-ec-ink">{formatBytes(item.originalBytes)}</td>
-                          <td className="px-5 py-3 text-xs font-medium text-emerald-600">{formatBytes(item.optimizedBytes)}</td>
-                          <td className="px-5 py-3">
-                            <span className="text-xs font-bold text-blue-600">-{formatBytes(item.savingsBytes)}</span>
-                          </td>
-                          <td className="px-5 py-3 text-xs text-ec-muted">→ {item.formatAfter}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
 
-              {/* ── Cloudinary transform inspector ── */}
-              <div className="rounded-xl border border-ec-hairline bg-ec-canvas p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-ec-muted">Cloudinary transformation applied</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {result.cloudinary.imageTransform.split(",").map((param) => (
-                    <span key={param} className="rounded-full border border-[#c5cbf0] bg-[#eef0fb] px-3 py-1 font-mono text-xs text-[#3448C5]">
-                      {param}
-                    </span>
-                  ))}
+                <button
+                  onClick={() => setStep("solutions")}
+                  className="w-full rounded-2xl bg-ec-ink p-5 text-lg font-bold text-white transition-all hover:bg-ec-primary-active hover:shadow-xl active:scale-[0.98]"
+                >
+                  See Optimization Strategies →
+                </button>
+              </div>
+            )}
+
+            {step === "solutions" && (
+              <div className="wiz-step flex flex-col">
+                <button
+                  onClick={() => { setStep("results"); setPrUrl(null); }}
+                  className="mb-8 self-start text-xs font-bold uppercase tracking-widest text-ec-muted hover:text-ec-ink transition-colors flex items-center gap-2"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                  Back to Results
+                </button>
+
+                <h2 className="ec-display text-3xl mb-10 text-center">Implementation Strategies</h2>
+
+                <div className="grid gap-6">
+                  <div
+                    onClick={() => setSolutionType("sdk")}
+                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "sdk" ? "border-ec-brand bg-ec-brand/[0.02] ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 font-bold italic">2 Lines</div>
+                      <div className="flex-1">
+                        <h4 className="font-bold">Zero-Install Script Tag</h4>
+                        <p className="text-sm text-ec-muted">Just drop this in your HTML or Next.js layout.</p>
+                      </div>
+                      {solutionType === "sdk" && <div className="h-4 w-4 rounded-full bg-ec-brand shadow-[0_0_12px_rgba(59,130,246,0.5)]" />}
+                    </div>
+
+                    {solutionType === "sdk" && (
+                      <div className="mt-6 flex flex-col gap-4">
+                        <div className="wiz-code relative group">
+                          <pre className="whitespace-pre-wrap">{sdkSnippet}</pre>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(sdkSnippet); alert("Snippet copied!"); }}
+                            className="absolute top-2 right-2 rounded-lg bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    onClick={() => setSolutionType("pr")}
+                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "pr" ? "border-ec-brand bg-ec-brand/[0.02] ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.7 1.5-1.7 1.5-2.7 0-1.5-1.5-3-3.5-3S11 7.5 11 9" /><path d="M9 14c-.2-1-.7-1.7-1.5-2.5-1-.7-1.5-1.7-1.5-2.7 0-1.5-1.5-3-3.5-3S13 7.5 13 9" /><path d="M12 22v-5" /><circle cx="12" cy="17" r="1" /></svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold">Raise a GitHub PR</h4>
+                        <p className="text-sm text-ec-muted">Generate optimized assets and merge into your repo.</p>
+                      </div>
+                      {solutionType === "pr" && <div className="h-4 w-4 rounded-full bg-ec-brand shadow-[0_0_12px_rgba(59,130,246,0.5)]" />}
+                    </div>
+
+                    {solutionType === "pr" && (
+                      <div className="mt-6 flex flex-col gap-4">
+                        {prUrl ? (
+                          <div className="flex flex-col items-center gap-4 p-4 rounded-xl bg-ec-success/10 border border-ec-success/20 animate-fade-up">
+                            <div className="h-12 w-12 rounded-full bg-ec-success text-white flex items-center justify-center">
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                            </div>
+                            <div className="text-center">
+                              <h4 className="font-bold text-ec-ink">Pull Request Created!</h4>
+                              <p className="text-xs text-ec-muted mt-1">Your code optimizations have been proposed.</p>
+                            </div>
+                            <a
+                              href={prUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full rounded-xl bg-ec-brand p-4 text-sm font-bold text-white text-center hover:bg-blue-600 transition-all"
+                            >
+                              View on GitHub ↗
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-4">
+                             {/* ASK REPO IF MISSING */}
+                             {(!(result as any).owner || !(result as any).repo) && (
+                               <div className="flex flex-col gap-2">
+                                 <label className="text-xs font-bold text-ec-ink uppercase tracking-wider">GitHub Repository</label>
+                                 <input 
+                                   type="text"
+                                   value={manualRepo}
+                                   onChange={(e) => setManualRepo(e.target.value)}
+                                   placeholder="owner/repo (e.g. facebook/react)"
+                                   className="w-full rounded-xl border border-ec-hairline bg-ec-surface-soft p-4 text-sm outline-none focus:border-ec-brand"
+                                   onClick={(e) => e.stopPropagation()}
+                                 />
+                               </div>
+                             )}
+
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleGithubAuth(); }}
+                              disabled={isPrCreating}
+                              className="w-full rounded-xl bg-ec-ink p-4 text-sm font-bold text-white flex items-center justify-center gap-2 transition-all hover:bg-ec-primary-active disabled:opacity-50"
+                            >
+                              {isPrCreating ? (
+                                <>
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                  Creating PR...
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.416-4.041-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+                                  Authorize & Create Pull Request
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                        {error && <p className="text-xs text-ec-error text-center font-medium mt-2">{error}</p>}
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    onClick={() => setSolutionType("prompt")}
+                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "prompt" ? "border-ec-brand bg-ec-brand/[0.02] ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 18.5a6.5 6.5 0 1 0-13 0c0 3.5 6.5 10.5 6.5 10.5s6.5-7 6.5-10.5Z" /><path d="M12 12s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /></svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold">AI Guided Optimization</h4>
+                        <p className="text-sm text-ec-muted">Specialized prompt for ChatGPT or Claude.</p>
+                      </div>
+                      {solutionType === "prompt" && <div className="h-4 w-4 rounded-full bg-ec-brand shadow-[0_0_12px_rgba(59,130,246,0.5)]" />}
+                    </div>
+
+                    {solutionType === "prompt" && (
+                      <div className="mt-6 flex flex-col gap-4">
+                        <div className="wiz-code relative group">
+                          <pre className="whitespace-pre-wrap text-[11px]">{aiPrompt}</pre>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(aiPrompt); alert("Prompt copied!"); }}
+                            className="absolute top-2 right-2 rounded-lg bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <p className="mt-4 font-mono text-[11px] text-ec-muted break-all">
-                  https://res.cloudinary.com/<strong>{result.cloudinary.cloudName}</strong>/image/fetch/{result.cloudinary.imageTransform}/<em>IMAGE_URL</em>
-                </p>
-              </div>
 
-            </div>
-          )}
+                <div className="mt-12 flex justify-center">
+                  <button
+                    onClick={() => { setStep("source"); setResult(null); setSolutionType(null); setUrl(""); setPrUrl(null); }}
+                    className="text-sm font-bold text-ec-muted hover:text-ec-ink transition-colors"
+                  >
+                    Reset and Start New Scan
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
       </main>
 
       <Footer />
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-ec-canvas"><div className="h-10 w-10 animate-spin rounded-full border-2 border-ec-ink border-t-transparent" /></div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }

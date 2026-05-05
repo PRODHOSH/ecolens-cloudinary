@@ -11,6 +11,7 @@ export type MediaItem = {
   formatBefore: string;
   formatAfter: string;
   transformation: string;
+  filePath?: string;
 };
 
 export type ScanTotals = {
@@ -44,4 +45,7 @@ export type ScanResult = {
     imageTransform: string;
     videoTransform: string;
   };
+  sourceType?: "website" | "github";
+  owner?: string;
+  repo?: string;
 };

@@ -134,6 +134,7 @@ body {
   0% {
     transform: translateX(0);
   }
+
   100% {
     transform: translateX(-50%);
   }
@@ -144,6 +145,7 @@ body {
     opacity: 0;
     transform: translateY(16px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -154,9 +156,11 @@ body {
   0% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
+
   100% {
     transform: translateY(0);
   }
@@ -184,19 +188,45 @@ body {
   transform: translateY(0);
 }
 
-[data-reveal-delay="100"] { transition-delay: 0.1s; }
-[data-reveal-delay="150"] { transition-delay: 0.15s; }
-[data-reveal-delay="200"] { transition-delay: 0.2s; }
-[data-reveal-delay="300"] { transition-delay: 0.3s; }
-[data-reveal-delay="400"] { transition-delay: 0.4s; }
-[data-reveal-delay="500"] { transition-delay: 0.5s; }
+[data-reveal-delay="100"] {
+  transition-delay: 0.1s;
+}
+
+[data-reveal-delay="150"] {
+  transition-delay: 0.15s;
+}
+
+[data-reveal-delay="200"] {
+  transition-delay: 0.2s;
+}
+
+[data-reveal-delay="300"] {
+  transition-delay: 0.3s;
+}
+
+[data-reveal-delay="400"] {
+  transition-delay: 0.4s;
+}
+
+[data-reveal-delay="500"] {
+  transition-delay: 0.5s;
+}
 
 /* ── Ecosystem orbital circles ──────────────────────────────────── */
 
 /* Gentle float on each circle node */
 @keyframes ec-orbit-float {
-  0%, 100% { transform: translateY(0px);   box-shadow: 0 4px 24px rgba(0,0,0,0.07); }
-  50%       { transform: translateY(-7px);  box-shadow: 0 12px 32px rgba(0,0,0,0.11); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+  }
+
+  50% {
+    transform: translateY(-7px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.11);
+  }
 }
 
 .ec-orbit-ring {
@@ -205,9 +235,17 @@ body {
 
 /* Ripple pulse on center nexus dot */
 @keyframes ec-nexus-ripple {
-  0%   { box-shadow: 0 0 0 0   rgba(17,17,17,0.18); }
-  60%  { box-shadow: 0 0 0 14px rgba(17,17,17,0);   }
-  100% { box-shadow: 0 0 0 0   rgba(17,17,17,0);    }
+  0% {
+    box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.18);
+  }
+
+  60% {
+    box-shadow: 0 0 0 14px rgba(17, 17, 17, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(17, 17, 17, 0);
+  }
 }
 
 .ec-nexus-pulse {
@@ -216,7 +254,9 @@ body {
 
 /* Animated SVG dashes — marching ants on the connection lines */
 @keyframes ec-dash-march {
-  to { stroke-dashoffset: -24; }
+  to {
+    stroke-dashoffset: -24;
+  }
 }
 
 .ec-line-march {
@@ -232,4 +272,152 @@ body {
 
 [data-reveal].is-visible .ec-stat-bar {
   width: var(--bar-w, 0%);
+}
+
+
+/* -- Wizard step animations ---------------------------------------- */
+@keyframes wiz-in {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes wiz-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.98);
+  }
+}
+
+@keyframes wiz-pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: scale(1.12);
+    opacity: 0.3;
+  }
+
+  100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+}
+
+@keyframes wiz-spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wiz-dot-bounce {
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.4;
+  }
+
+  40% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes wiz-progress {
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: var(--prog-w, 100%);
+  }
+}
+
+.wiz-step {
+  animation: wiz-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.wiz-step-exit {
+  animation: wiz-out 0.3s ease both;
+}
+
+.wiz-pulse-ring {
+  animation: wiz-pulse-ring 2s ease-in-out infinite;
+}
+
+.wiz-spin {
+  animation: wiz-spin-slow 1.4s linear infinite;
+}
+
+.wiz-dot {
+  animation: wiz-dot-bounce 1.4s ease-in-out infinite;
+}
+
+.wiz-dot:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.wiz-dot:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+/* dark wizard background */
+.wiz-bg {
+  background: radial-gradient(ellipse at 60% 20%, #0f1629 0%, #080810 60%, #050508 100%);
+}
+
+/* subtle grid overlay */
+.wiz-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* code block styling */
+.wiz-code {
+  background: #0d1117;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  font-family: "Fira Code", "Cascadia Code", ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-x: auto;
+  padding: 20px 24px;
+}
+
+.wiz-code .kw {
+  color: #ff7b72;
+}
+
+.wiz-code .fn {
+  color: #d2a8ff;
+}
+
+.wiz-code .str {
+  color: #a5d6ff;
+}
+
+.wiz-code .cm {
+  color: #8b949e;
+}
+
+.wiz-code .op {
+  color: #79c0ff;
 }

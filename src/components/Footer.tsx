@@ -75,6 +75,7 @@ export default function Footer() {
               <ul className="mt-4 space-y-2.5 text-sm">
                 <li><a href="#product" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark">Overview</a></li>
                 <li><a href="#how" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark">How it works</a></li>
+                <li><a href="/docs" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark font-bold italic">Documentation</a></li>
                 <li><a href="#features" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark">Features</a></li>
                 <li><a href="#pricing" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark">Pricing</a></li>
               </ul>

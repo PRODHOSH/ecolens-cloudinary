@@ -87,10 +87,10 @@ export default function Header() {
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
+          <Link href="/docs" className="text-sm font-medium text-ec-body transition hover:text-ec-ink">Docs</Link>
           {user ? (
             <>
               <Link href="/dashboard" className="text-sm font-medium text-ec-body transition hover:text-ec-ink">Dashboard</Link>
-              <Link href="/scan" className="text-sm font-medium text-ec-body transition hover:text-ec-ink">New Scan</Link>
             </>
           ) : (
             <>
@@ -149,9 +149,9 @@ export default function Header() {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                       Dashboard
                     </Link>
-                    <Link href="/scan" onClick={() => setDropOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ec-body transition hover:bg-ec-surface-soft hover:text-ec-ink">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      New Scan
+                    <Link href="/docs" onClick={() => setDropOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ec-body transition hover:bg-ec-surface-soft hover:text-ec-ink">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      Documentation
                     </Link>
                     <div className="my-1 h-px bg-ec-hairline"/>
                     <button
