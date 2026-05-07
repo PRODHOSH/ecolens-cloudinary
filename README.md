@@ -7,11 +7,11 @@
 EcoLens is a platform designed to fix a common issue in modern web development: beautiful websites that are weighed down by unoptimized media. We help you identify, optimize, and deliver images and videos via Cloudinary to improve performance and reduce your digital carbon footprint.
 
 ---
-![hero](public/image3.png)
-![screenshot](public/image4.png)
-![screenshot](public/image5.png)
-![screenshot](public/image2.png)
-![screenshots](public/image1.png)
+![hero](public/images/image3.png)
+![screenshot](public/images/image4.png)
+![screenshot](public/images/image5.png)
+![screenshot](public/images/image2.png)
+![screenshots](public/images/image1.png)
 
 ## The Problem
 
