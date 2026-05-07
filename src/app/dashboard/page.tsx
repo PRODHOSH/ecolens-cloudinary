@@ -31,6 +31,9 @@ function DashboardContent() {
   const [solutionType, setSolutionType] = useState<"sdk" | "pr" | "prompt" | null>(null);
   const [isPrCreating, setIsPrCreating] = useState(false);
   const [prUrl, setPrUrl] = useState<string | null>(null);
+  const [sdkCopied, setSdkCopied] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
+  const [expandedAssets, setExpandedAssets] = useState<string[]>([]);
 
   /* ── Auth gate ── */
   useEffect(() => {
@@ -199,19 +202,74 @@ function DashboardContent() {
 
   const aiPrompt = useMemo(() => {
     if (!result) return "";
-    return `Optimize my website's images to reduce CO2 emissions and improve performance. 
-Found ${result.totals.imageCount} images with a total size of ${formatMb(result.totals.originalBytes)} MB.
-Suggested Cloudinary transformations: ${result.cloudinary.imageTransform}.
-Top offenders to fix:
-${result.topOffenders.map(o => `- ${o.originalUrl} (${formatBytes(o.originalBytes)})`).join("\n")}
-Please write a React/Next.js component or a script to automate this using Cloudinary Fetch API.`;
+
+    const assetList = result.media
+      .map((item) => {
+        const label = item.filePath ? item.filePath : item.originalUrl;
+        return `- ${label} (${formatBytes(item.originalBytes)})`;
+      })
+      .join("\n");
+
+    return `You are an expert code refactoring assistant. Your job is to replace every image reference in this repository with Cloudinary-optimized delivery URLs and generate a clean, human-readable report.
+
+Strict rules:
+1) Use ONLY the user's Cloudinary cloud name. If it is missing, ask for it. Do not invent or guess.
+2) Use Cloudinary Fetch for remote URLs and Cloudinary delivery for local assets that should be uploaded or already exist in Cloudinary.
+3) Update all references across HTML, CSS, JS/TS, JSX/TSX, and markdown.
+4) Produce a full report that lists every file changed and the exact transformation pattern applied.
+5) Generate .env.example and document how to set up .env locally.
+6) No emojis in outputs or file names.
+
+Required outputs:
+- Code changes for all images (no partial updates).
+- ECOLENS_REPORT.md with:
+  - Summary (counts, savings, approach)
+  - Files changed (file path + reason)
+  - Cloudinary setup (how to get cloud name from console.cloudinary.com -> Dashboard)
+  - Environment setup (create .env and .env.example; use CLOUDINARY_CLOUD_NAME or NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME)
+  - How to validate the changes locally
+
+Use this transformation pattern:
+- Images: ${result.cloudinary.imageTransform}
+
+Detected assets:
+${assetList}
+
+After completing changes, respond with "Done" and nothing else.`;
   }, [result]);
 
+  const [origin, setOrigin] = useState("");
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  const sdkBaseUrl = origin || process.env.NEXT_PUBLIC_SITE_URL || "https://ecolens-cloudinary.vercel.app";
   const sdkSnippet = `<script 
-  src="https://ecolens.cloudinary.com/v1/sdk.js" 
+  src="${sdkBaseUrl}/sdk.js" 
   data-cloud="${result?.cloudinary.cloudName || "your-cloud"}"
   async
 ></script>`;
+
+  const handleCopy = async (text: string, setCopied: (value: boolean) => void) => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  const steps: Array<{ key: WizardStep; label: string; helper: string }> = [
+    { key: "source", label: "Choose source", helper: "Website or GitHub" },
+    { key: "input", label: "Provide input", helper: "URL or repo" },
+    { key: "scanning", label: "Scan media", helper: "Analyze assets" },
+    { key: "results", label: "Review results", helper: "Impact summary" },
+    { key: "solutions", label: "Apply fixes", helper: "SDK, PR, or AI" },
+  ];
+  const stepIndex = Math.max(
+    steps.findIndex((item) => item.key === step),
+    0
+  );
+  const progressPercent = Math.round(((stepIndex + 1) / steps.length) * 100);
+  const hasMedia =
+    (result?.totals.imageCount ?? 0) + (result?.totals.videoCount ?? 0) > 0;
 
   if (!authReady) {
     return (
@@ -225,23 +283,57 @@ Please write a React/Next.js component or a script to automate this using Cloudi
     <div className="flex min-h-screen flex-col bg-ec-canvas text-ec-ink selection:bg-ec-brand/10">
       <Header />
 
-      <main className="relative flex flex-1 flex-col items-center justify-center p-6">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-ec-brand/5 blur-[120px]" />
-          <div className="absolute -bottom-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-ec-success/5 blur-[120px]" />
-        </div>
+      <main className="flex-1 py-12">
+        <div className="ec-container">
+          <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
+            <aside className="h-fit rounded-2xl border border-ec-hairline bg-ec-surface-soft p-6 lg:sticky lg:top-24">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-ec-muted">Scan steps</p>
+              <div className="mt-6 space-y-3">
+                {steps.map((item, index) => {
+                  const isCurrent = index === stepIndex;
+                  const isDone = index < stepIndex;
+                  const badgeClass = isDone
+                    ? "bg-ec-ink text-white"
+                    : isCurrent
+                      ? "border-ec-ink text-ec-ink"
+                      : "border-ec-hairline text-ec-muted";
 
-        <div className="wiz-step relative z-10 w-full max-w-4xl overflow-hidden rounded-3xl border border-ec-hairline bg-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)]">
+                  return (
+                    <div key={item.key} className="flex items-center gap-3">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold ${badgeClass}`}>
+                        {isDone ? "✓" : index + 1}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-semibold ${isCurrent ? "text-ec-ink" : "text-ec-body"}`}>{item.label}</p>
+                        <p className="text-xs text-ec-muted">{item.helper}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-8 rounded-xl border border-ec-hairline bg-white p-4 text-xs text-ec-muted">
+                {result ? (
+                  <>
+                    <p className="font-semibold text-ec-ink">Current scan</p>
+                    <p className="mt-1 truncate">{result.targetUrl}</p>
+                    <p className="mt-2">{result.totals.imageCount} images, {result.totals.videoCount} videos</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-ec-ink">Tip</p>
+                    <p className="mt-1">Use public URLs for the most accurate scan results.</p>
+                  </>
+                )}
+              </div>
+            </aside>
+
+            <div className="wiz-step w-full overflow-hidden rounded-3xl border border-ec-hairline bg-white shadow-[0_24px_48px_-16px_rgba(0,0,0,0.12)]">
 
           <div className="h-1 w-full bg-ec-hairline-soft">
             <div
               className="h-full bg-ec-brand transition-all duration-500 ease-out"
               style={{
-                width:
-                  step === "source" ? "20%" :
-                    step === "input" ? "40%" :
-                      step === "scanning" ? "60%" :
-                        step === "results" ? "80%" : "100%"
+                width: `${progressPercent}%`
               }}
             />
           </div>
@@ -259,7 +351,7 @@ Please write a React/Next.js component or a script to automate this using Cloudi
                 <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
                   <button
                     onClick={() => { setScanType("website"); setStep("input"); }}
-                    className="group flex flex-col items-start rounded-2xl border border-ec-hairline p-6 text-left transition-all hover:border-ec-brand hover:bg-ec-brand/[0.02]"
+                    className="group flex flex-col items-start rounded-2xl border border-ec-hairline p-6 text-left transition-all hover:border-ec-brand hover:bg-ec-brand/2"
                   >
                     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-ec-surface-soft group-hover:bg-ec-brand/10 group-hover:text-ec-brand transition-colors">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
@@ -270,7 +362,7 @@ Please write a React/Next.js component or a script to automate this using Cloudi
 
                   <button
                     onClick={() => { setScanType("github"); setStep("input"); }}
-                    className="group flex flex-col items-start rounded-2xl border border-ec-hairline p-6 text-left transition-all hover:border-ec-brand hover:bg-ec-brand/[0.02]"
+                    className="group flex flex-col items-start rounded-2xl border border-ec-hairline p-6 text-left transition-all hover:border-ec-brand hover:bg-ec-brand/2"
                   >
                     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-ec-surface-soft group-hover:bg-ec-brand/10 group-hover:text-ec-brand transition-colors">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" /></svg>
@@ -358,52 +450,107 @@ Please write a React/Next.js component or a script to automate this using Cloudi
                   </div>
                 </div>
 
-                <div className="mb-10 rounded-2xl bg-ec-surface-dark p-6 text-white shadow-xl">
+                <div className="mb-10 rounded-2xl border border-ec-hairline bg-ec-surface-soft p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ec-success/20 text-ec-success">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ec-success/10 text-ec-success">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /></svg>
                     </div>
-                    <h4 className="font-bold text-lg italic text-ec-success">Cloudinary EcoLens Impact</h4>
+                    <h4 className="font-bold text-lg text-ec-ink">Cloudinary EcoLens Impact</h4>
                   </div>
-                  <p className="text-sm leading-relaxed text-ec-on-dark-soft">
-                    Your website is currently burning <span className="text-white font-bold">{formatMb(result.totals.originalBytes)} MB</span> per load.
-                    Cloudinary's <code className="bg-white/10 px-1.5 py-0.5 rounded text-ec-success">f_auto, q_auto</code> will
-                    improve speed by <span className="text-white font-bold">{formatPercent(result.metrics.loadTimeImprovementPercent)}</span> and slash emissions.
+                  <p className="text-sm leading-relaxed text-ec-body">
+                    Your website currently transfers <span className="font-bold text-ec-ink">{formatMb(result.totals.originalBytes)} MB</span> per load.
+                    Cloudinary's <code className="bg-ec-canvas px-1.5 py-0.5 rounded text-ec-success">f_auto, q_auto</code> can
+                    improve speed by <span className="font-bold text-ec-ink">{formatPercent(result.metrics.loadTimeImprovementPercent)}</span> and reduce emissions.
                   </p>
                 </div>
 
-                <div className="mb-10 max-h-72 overflow-y-auto rounded-xl border border-ec-hairline">
+                {!hasMedia && (
+                  <div className="mb-6 rounded-xl border border-ec-warning/30 bg-ec-warning/10 p-4 text-sm text-ec-ink">
+                    No media assets were detected. Some sites render media client-side or block crawlers. Try another URL or use the GitHub scan.
+                  </div>
+                )}
+
+                <div className="mb-10 rounded-xl border border-ec-hairline">
                   <table className="w-full text-left text-sm">
                     <thead className="sticky top-0 bg-ec-surface-soft text-[10px] uppercase tracking-widest text-ec-muted">
                       <tr>
-                        <th className="px-6 py-4">Image Asset</th>
+                        <th className="px-6 py-4">Asset</th>
                         <th className="px-6 py-4">Original</th>
                         <th className="px-6 py-4">Optimized</th>
                         <th className="px-6 py-4">Eco Gain</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-ec-hairline">
-                      {result.topOffenders.map((item) => (
-                        <tr key={item.id} className="hover:bg-ec-surface-soft/50 transition-colors">
-                          <td className="px-6 py-4 max-w-[200px] truncate font-medium text-xs italic">{item.originalUrl.split('/').pop()}</td>
-                          <td className="px-6 py-4 text-ec-muted">{formatBytes(item.originalBytes)}</td>
-                          <td className="px-6 py-4 font-bold text-ec-success">{formatBytes(item.optimizedBytes)}</td>
-                          <td className="px-6 py-4">
-                            <span className="rounded-full bg-ec-brand/10 px-2 py-1 text-[10px] font-bold text-ec-brand">
-                              -{formatPercent(item.savingsBytes / item.originalBytes)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
+                      <tbody className="divide-y divide-ec-hairline">
+                        {result.media.map((item) => {
+                          const isOpen = expandedAssets.includes(item.id);
+                          return (
+                            <>
+                              <tr
+                                key={item.id}
+                                onClick={() =>
+                                  setExpandedAssets((prev) => (prev.includes(item.id) ? prev.filter((i) => i !== item.id) : [...prev, item.id]))
+                                }
+                                className="hover:bg-ec-surface-soft/50 transition-colors cursor-pointer"
+                              >
+                                <td className="px-6 py-4 max-w-50 truncate font-medium text-xs italic">
+                                  <div className="flex items-center gap-2">
+                                    <span className="rounded-full bg-ec-surface-soft px-2 py-0.5 text-[9px] font-semibold uppercase text-ec-muted">
+                                      {item.type}
+                                    </span>
+                                    <span className="truncate">{item.originalUrl.split("/").pop()}</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-ec-muted">{formatBytes(item.originalBytes)}</td>
+                                <td className="px-6 py-4 font-bold text-ec-success">{formatBytes(item.optimizedBytes)}</td>
+                                <td className="px-6 py-4">
+                                  <span className="rounded-full bg-ec-brand/10 px-2 py-1 text-[10px] font-bold text-ec-brand">
+                                    -{formatPercent(item.savingsBytes / item.originalBytes)}
+                                  </span>
+                                </td>
+                              </tr>
+
+                              {isOpen && (
+                                <tr key={`${item.id}-detail`} className="bg-ec-canvas">
+                                  <td colSpan={4} className="px-6 py-4 text-sm text-ec-body">
+                                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-6">
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-xs text-ec-muted">Original URL</p>
+                                        <a href={item.originalUrl} target="_blank" rel="noreferrer" className="text-xs text-ec-ink break-words">
+                                          {item.originalUrl}
+                                        </a>
+
+                                        <p className="mt-2 text-xs text-ec-muted">Optimized URL</p>
+                                        <a href={item.optimizedUrl} target="_blank" rel="noreferrer" className="text-xs text-ec-ink break-words">
+                                          {item.optimizedUrl}
+                                        </a>
+                                      </div>
+
+                                      <div className="w-full max-w-xs shrink-0">
+                                        {item.type === "image" ? (
+                                          // eslint-disable-next-line @next/next/no-img-element
+                                          <img src={item.optimizedUrl} alt={item.originalUrl.split("/").pop()} className="w-full rounded-md border border-ec-hairline object-contain" />
+                                        ) : item.type === "video" ? (
+                                          <video src={item.optimizedUrl} controls className="w-full rounded-md border border-ec-hairline" />
+                                        ) : (
+                                          <div className="rounded-md border border-ec-hairline p-3 text-xs text-ec-muted">No preview available</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </>
+                          );
+                        })}
+                      </tbody>
                   </table>
                 </div>
 
                 <button
                   onClick={() => setStep("solutions")}
-                  className="w-full rounded-2xl bg-ec-ink p-5 text-lg font-bold text-white transition-all hover:bg-ec-primary-active hover:shadow-xl active:scale-[0.98]"
+                  className="w-full rounded-xl bg-ec-ink px-6 py-4 text-sm font-semibold text-white transition hover:bg-ec-primary-active"
                 >
-                  See Optimization Strategies →
+                  See Optimization Strategies
                 </button>
               </div>
             )}
@@ -423,10 +570,16 @@ Please write a React/Next.js component or a script to automate this using Cloudi
                 <div className="grid gap-6">
                   <div
                     onClick={() => setSolutionType("sdk")}
-                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "sdk" ? "border-ec-brand bg-ec-brand/[0.02] ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
+                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "sdk" ? "border-ec-brand bg-ec-brand/2 ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 font-bold italic">2 Lines</div>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M8 9l-4 3 4 3" />
+                          <path d="M16 9l4 3-4 3" />
+                          <path d="M14 5l-4 14" />
+                        </svg>
+                      </div>
                       <div className="flex-1">
                         <h4 className="font-bold">Zero-Install Script Tag</h4>
                         <p className="text-sm text-ec-muted">Just drop this in your HTML or Next.js layout.</p>
@@ -436,14 +589,23 @@ Please write a React/Next.js component or a script to automate this using Cloudi
 
                     {solutionType === "sdk" && (
                       <div className="mt-6 flex flex-col gap-4">
-                        <div className="wiz-code relative group">
-                          <pre className="whitespace-pre-wrap">{sdkSnippet}</pre>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(sdkSnippet); alert("Snippet copied!"); }}
-                            className="absolute top-2 right-2 rounded-lg bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            Copy
-                          </button>
+                        <div className="flex flex-col gap-3 rounded-xl border border-ec-hairline bg-ec-surface-soft p-4 shadow-[0_16px_30px_-22px_rgba(15,23,42,0.4)]">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-semibold text-ec-ink">Script tag is ready to copy</p>
+                              <p className="text-xs text-ec-muted">Paste into your &lt;head&gt; or Next.js layout file.</p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleCopy(sdkSnippet, setSdkCopied); }}
+                              className="rounded-lg border border-ec-hairline bg-white px-4 py-2 text-xs font-semibold text-ec-ink transition hover:bg-ec-surface-soft"
+                            >
+                              {sdkCopied ? "Copied" : "Copy script"}
+                            </button>
+                          </div>
+                          <pre className="whitespace-pre-wrap rounded-lg border border-ec-hairline bg-white px-4 py-3 text-[11px] text-ec-ink">
+{sdkSnippet}
+                          </pre>
+                          <p className="text-xs text-ec-muted">Do not share your Cloudinary cloud name publicly if your account is private.</p>
                         </div>
                       </div>
                     )}
@@ -451,14 +613,24 @@ Please write a React/Next.js component or a script to automate this using Cloudi
 
                   <div
                     onClick={() => setSolutionType("pr")}
-                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "pr" ? "border-ec-brand bg-ec-brand/[0.02] ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
+                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "pr" ? "border-ec-brand bg-ec-brand/2 ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.7 1.5-1.7 1.5-2.7 0-1.5-1.5-3-3.5-3S11 7.5 11 9" /><path d="M9 14c-.2-1-.7-1.7-1.5-2.5-1-.7-1.5-1.7-1.5-2.7 0-1.5-1.5-3-3.5-3S13 7.5 13 9" /><path d="M12 22v-5" /><circle cx="12" cy="17" r="1" /></svg>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-purple-100 bg-purple-50 text-purple-600">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="5" cy="5" r="3" />
+                          <circle cx="19" cy="19" r="3" />
+                          <circle cx="19" cy="5" r="3" />
+                          <path d="M8 6l8 0" />
+                          <path d="M6 8l0 8" />
+                          <path d="M8 16l8 0" />
+                        </svg>
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-bold">Raise a GitHub PR</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold">Raise a GitHub PR</h4>
+                          <span className="rounded-full bg-ec-surface-soft px-2 py-0.5 text-[10px] font-semibold text-ec-body">Recommended for beginners →</span>
+                        </div>
                         <p className="text-sm text-ec-muted">Generate optimized assets and merge into your repo.</p>
                       </div>
                       {solutionType === "pr" && <div className="h-4 w-4 rounded-full bg-ec-brand shadow-[0_0_12px_rgba(59,130,246,0.5)]" />}
@@ -514,10 +686,11 @@ Please write a React/Next.js component or a script to automate this using Cloudi
                               ) : (
                                 <>
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.416-4.041-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
-                                  Authorize & Create Pull Request
+                                  Authorize GitHub and Create PR
                                 </>
                               )}
                             </button>
+                            <p className="text-[11px] text-ec-muted">We request repo scope to open a PR on your behalf.</p>
                           </div>
                         )}
                         {error && <p className="text-xs text-ec-error text-center font-medium mt-2">{error}</p>}
@@ -527,11 +700,15 @@ Please write a React/Next.js component or a script to automate this using Cloudi
 
                   <div
                     onClick={() => setSolutionType("prompt")}
-                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "prompt" ? "border-ec-brand bg-ec-brand/[0.02] ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
+                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "prompt" ? "border-ec-brand bg-ec-brand/2 ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 18.5a6.5 6.5 0 1 0-13 0c0 3.5 6.5 10.5 6.5 10.5s6.5-7 6.5-10.5Z" /><path d="M12 12s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /></svg>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 3l1.8 3.8L18 8l-3 2.9.7 4.1-3.7-2-3.7 2 .7-4.1L6 8l4.2-1.2L12 3z" />
+                          <path d="M5 21l2-4" />
+                          <path d="M19 21l-2-4" />
+                        </svg>
                       </div>
                       <div className="flex-1">
                         <h4 className="font-bold">AI Guided Optimization</h4>
@@ -542,14 +719,20 @@ Please write a React/Next.js component or a script to automate this using Cloudi
 
                     {solutionType === "prompt" && (
                       <div className="mt-6 flex flex-col gap-4">
-                        <div className="wiz-code relative group">
-                          <pre className="whitespace-pre-wrap text-[11px]">{aiPrompt}</pre>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(aiPrompt); alert("Prompt copied!"); }}
-                            className="absolute top-2 right-2 rounded-lg bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            Copy
-                          </button>
+                        <div className="flex flex-col gap-3 rounded-xl border border-ec-hairline bg-ec-surface-soft p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-semibold text-ec-ink">Prompt is hidden for safety</p>
+                              <p className="text-xs text-ec-muted">Copy it directly into Claude Code or Cursor.</p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleCopy(aiPrompt, setPromptCopied); }}
+                              className="rounded-lg border border-ec-hairline bg-white px-4 py-2 text-xs font-semibold text-ec-ink transition hover:bg-ec-surface-soft"
+                            >
+                              {promptCopied ? "Copied" : "Copy prompt"}
+                            </button>
+                          </div>
+                          <p className="text-xs text-ec-muted">The prompt includes repo-wide steps, report structure, and Cloudinary setup guidance.</p>
                         </div>
                       </div>
                     )}
@@ -569,6 +752,8 @@ Please write a React/Next.js component or a script to automate this using Cloudi
 
           </div>
         </div>
+      </div>
+    </div>
       </main>
 
       <Footer />

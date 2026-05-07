@@ -76,27 +76,38 @@ export default function Header() {
 
   const initial = user?.name?.charAt(0).toUpperCase() ?? "?";
 
+  const headerClass = "border-ec-hairline bg-ec-canvas";
+  const logoBoxClass = "bg-ec-ink text-white";
+  const brandTextClass = "text-ec-ink";
+  const navLinkClass = "text-ec-body hover:text-ec-ink";
+  const avatarButtonClass = "border-ec-hairline bg-ec-canvas hover:bg-ec-surface-soft";
+  const dropdownClass = "border-ec-hairline bg-ec-canvas";
+  const dropdownItemClass = "text-ec-body hover:bg-ec-surface-soft hover:text-ec-ink";
+  const dividerClass = "bg-ec-hairline";
+  const signInClass = "ec-button-secondary";
+  const getStartedClass = "ec-button-primary";
+
   return (
-    <header className="relative z-20 w-full border-b border-ec-hairline bg-ec-canvas">
+    <header className={`relative z-20 w-full border-b ${headerClass}`}>
       <div className="ec-container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ec-ink">
-            <span className="text-xs font-bold text-white">E</span>
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${logoBoxClass}`}>
+            <span className="text-xs font-bold">E</span>
           </div>
-          <span className="ec-display text-lg font-bold text-ec-ink">EcoLens</span>
+          <span className={`ec-display text-lg font-bold ${brandTextClass}`}>EcoLens</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
-          <Link href="/docs" className="text-sm font-medium text-ec-body transition hover:text-ec-ink">Docs</Link>
+          <Link href="/docs" className={`text-sm font-medium transition ${navLinkClass}`}>Docs</Link>
           {user ? (
             <>
-              <Link href="/dashboard" className="text-sm font-medium text-ec-body transition hover:text-ec-ink">Dashboard</Link>
+              <Link href="/dashboard" className={`text-sm font-medium transition ${navLinkClass}`}>Dashboard</Link>
             </>
           ) : (
             <>
-              <a href="#product"   className="text-sm font-medium text-ec-body transition hover:text-ec-ink">Product</a>
-              <a href="#features"  className="text-sm font-medium text-ec-body transition hover:text-ec-ink">Features</a>
-              <a href="#pricing"   className="text-sm font-medium text-ec-body transition hover:text-ec-ink">Pricing</a>
+              <a href="#product" className={`text-sm font-medium transition ${navLinkClass}`}>Product</a>
+              <a href="#features" className={`text-sm font-medium transition ${navLinkClass}`}>Features</a>
+              <a href="#pricing" className={`text-sm font-medium transition ${navLinkClass}`}>Pricing</a>
             </>
           )}
         </nav>
@@ -108,7 +119,7 @@ export default function Header() {
               <button
                 id="header-avatar-btn"
                 onClick={() => setDropOpen((v) => !v)}
-                className="flex items-center gap-2.5 rounded-full border border-ec-hairline bg-ec-canvas px-2 py-1.5 transition hover:bg-ec-surface-soft"
+                className={`flex items-center gap-2.5 rounded-full border px-2 py-1.5 transition ${avatarButtonClass}`}
                 aria-expanded={dropOpen}
                 aria-haspopup="true"
               >
@@ -122,11 +133,11 @@ export default function Header() {
                     className="h-7 w-7 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-ec-ink text-xs font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold bg-ec-ink text-white">
                     {initial}
                   </div>
                 )}
-                <span className="hidden max-w-[120px] truncate text-sm font-medium text-ec-ink md:block">
+                <span className="hidden max-w-30 truncate text-sm font-medium text-ec-ink md:block">
                   {user.name}
                 </span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-ec-muted" aria-hidden="true">
@@ -139,21 +150,21 @@ export default function Header() {
                   {/* Backdrop */}
                   <div className="fixed inset-0 z-10" onClick={() => setDropOpen(false)} aria-hidden="true"/>
                   {/* Menu */}
-                  <div className="absolute right-0 top-full z-20 mt-2 w-52 rounded-xl border border-ec-hairline bg-ec-canvas p-1.5 shadow-lg">
+                    <div className={`absolute right-0 top-full z-20 mt-2 w-52 rounded-xl border p-1.5 shadow-lg ${dropdownClass}`}>
                     <div className="px-3 py-2">
-                      <p className="text-xs font-semibold text-ec-ink truncate">{user.name}</p>
-                      <p className="text-[11px] text-ec-muted truncate">{user.email}</p>
+                      <p className="text-xs font-semibold truncate text-ec-ink">{user.name}</p>
+                      <p className="text-[11px] truncate text-ec-muted">{user.email}</p>
                     </div>
-                    <div className="my-1 h-px bg-ec-hairline"/>
-                    <Link href="/dashboard" onClick={() => setDropOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ec-body transition hover:bg-ec-surface-soft hover:text-ec-ink">
+                    <div className={`my-1 h-px ${dividerClass}`}/>
+                    <Link href="/dashboard" onClick={() => setDropOpen(false)} className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${dropdownItemClass}`}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                       Dashboard
                     </Link>
-                    <Link href="/docs" onClick={() => setDropOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ec-body transition hover:bg-ec-surface-soft hover:text-ec-ink">
+                    <Link href="/docs" onClick={() => setDropOpen(false)} className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${dropdownItemClass}`}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                       Documentation
                     </Link>
-                    <div className="my-1 h-px bg-ec-hairline"/>
+                    <div className={`my-1 h-px ${dividerClass}`}/>
                     <button
                       id="header-signout-btn"
                       onClick={() => { setDropOpen(false); handleSignOut(); }}
@@ -168,8 +179,8 @@ export default function Header() {
             </div>
           ) : (
             <>
-              <button onClick={() => setOpen(true)} className="ec-button-secondary">Sign In</button>
-              <button onClick={() => setOpen(true)} className="ec-button-primary">Get Started</button>
+              <button onClick={() => setOpen(true)} className={signInClass}>Sign In</button>
+              <button onClick={() => setOpen(true)} className={getStartedClass}>Get Started</button>
             </>
           )}
         </div>

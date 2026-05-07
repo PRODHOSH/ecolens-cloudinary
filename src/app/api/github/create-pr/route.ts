@@ -41,20 +41,48 @@ export async function POST(req: Request) {
     });
 
     // 4. Prepare the optimization content
-    const reportContent = `
-# EcoLens Optimization Report
+    const assetLines = scanResult.media
+      .map((item) => `- ${item.filePath ?? item.originalUrl} -> ${item.originalUrl}`)
+      .join("\n");
+
+    const reportContent = `# EcoLens Optimization Report
 Generated on: ${new Date().toLocaleString()}
 
-## Impact Summary
-- **Size Reduction**: ${scanResult.metrics.reductionPercent.toFixed(1)}%
-- **Bandwidth Saved**: ${scanResult.metrics.bandwidthSavedMb.toFixed(2)} MB
-- **CO2 Avoided**: ${scanResult.metrics.co2SavedGrams.toFixed(2)}g per page view
+## Summary
+- Size reduction: ${scanResult.metrics.reductionPercent.toFixed(1)}%
+- Bandwidth saved: ${scanResult.metrics.bandwidthSavedMb.toFixed(2)} MB
+- CO2 avoided: ${scanResult.metrics.co2SavedGrams.toFixed(2)} g per page view
+
+  ## Transformation Pattern
+  - Images: ${scanResult.cloudinary.imageTransform}
+
+## Files Added By This PR
+- ECOLENS_REPORT.md
+- cloudinary-loader.js
+
+  ## Source File Changes
+  This PR does not rewrite image references automatically. Use the report to apply the changes, or run your own refactor with the loader.
 
 ## Optimized Assets
-${scanResult.topOffenders.map(item => `- [${item.filePath || item.originalUrl}](${item.originalUrl}) -> Optimized via Cloudinary`).join("\n")}
+${assetLines}
 
-## Recommendation
-Implement the Cloudinary Fetch API to automatically optimize these assets.
+## Cloudinary Setup
+1. Go to https://console.cloudinary.com
+2. Open your Cloudinary Dashboard
+3. Copy your Cloud Name (visible at the top of the dashboard)
+
+## Environment Setup
+Create a .env file and a .env.example file at the project root with one of the following:
+
+- CLOUDINARY_CLOUD_NAME=YOUR_CLOUD_NAME
+or
+- NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=YOUR_CLOUD_NAME
+
+## How To Validate
+1. Install dependencies
+2. Start the dev server
+3. Confirm image URLs are served through Cloudinary
+4. Compare page weight before and after
 `;
 
     // 5. Create the commits
@@ -94,14 +122,24 @@ export default function cloudinaryLoader({ src, width, quality }) {
       method: "POST",
       headers,
       body: JSON.stringify({
-        title: "🌱 EcoLens: Media Optimization & Carbon Reduction",
-        body: `EcoLens has analyzed your repository and found that your media assets can be reduced by **${scanResult.metrics.reductionPercent.toFixed(1)}%**.
+        title: "EcoLens media optimization report and Cloudinary loader",
+        body: `EcoLens analyzed this repository and found that media assets can be reduced by ${scanResult.metrics.reductionPercent.toFixed(1)}%.
 
 This PR adds:
-1. **ECOLENS_REPORT.md**: A detailed breakdown of your site's carbon footprint and optimization potential.
-2. **cloudinary-loader.js**: A pre-configured Cloudinary loader for your images.
+- ECOLENS_REPORT.md with impact metrics, setup steps, and a full asset list
+- cloudinary-loader.js as a starter image loader
 
-Merging this will significantly improve your site's Core Web Vitals and reduce its environmental impact.`,
+Note: This PR does not rewrite image references automatically.
+
+Setup:
+1. Retrieve your Cloudinary cloud name from https://console.cloudinary.com
+2. Add CLOUDINARY_CLOUD_NAME (or NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) to your .env
+3. Start the app and verify images load via Cloudinary
+
+Validation:
+- Confirm that optimized URLs include ${scanResult.cloudinary.imageTransform}
+- Measure page weight before and after
+`,
         head: newBranch,
         base: baseBranch,
       }),

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import CopyButton from "@/components/CopyButton";
 import DotGrid from "@/components/DotGrid";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Testimonials from "@/components/Testimonials";
 
-const SDK_SNIPPET = `<script src="https://ecolens.app/sdk.js"></script>
+const SDK_SNIPPET = `<script src="https://ecolens-cloudinary.vercel.app/sdk.js"></script>
 <script>
   EcoLens.optimize();
 </script>`;
@@ -89,9 +90,9 @@ export default function Home() {
                   >
                     Try Demo
                   </button>
-                  <a href="#how" className="ec-button-secondary">
-                    See How It Works
-                  </a>
+                  <Link href="/docs" className="ec-button-secondary">
+                    View Documentation
+                  </Link>
                 </div>
               </div>
               <div className="ec-card p-8" data-reveal data-reveal-delay="150">
@@ -195,7 +196,7 @@ export default function Home() {
                 ].map((card, i) => (
                   <div
                     key={i}
-                    className="w-full max-w-xs flex-shrink-0 md:w-72"
+                    className="w-full max-w-xs shrink-0 md:w-72"
                     data-reveal
                     data-reveal-delay={String(card.delay)}
                     style={{
@@ -280,8 +281,9 @@ export default function Home() {
                       {/* Dashed connector line (not last) */}
                       {i < arr.length - 1 && (
                         <div
-                          className="absolute left-[19px] top-10 w-px"
+                          className="absolute top-10 w-px"
                           style={{
+                            left: "19px",
                             bottom: "-8px",
                             background: "repeating-linear-gradient(to bottom, #e5e7eb 0, #e5e7eb 4px, transparent 4px, transparent 10px)",
                           }}
@@ -336,7 +338,7 @@ export default function Home() {
 
 
           {/* ─── SDK ──────────────────────────────────────────────── */}
-          <section className="ec-section border-t border-ec-hairline-soft">
+          <section id="sdk" className="ec-section border-t border-ec-hairline-soft">
             <div className="ec-container grid items-center gap-12 lg:grid-cols-[1fr_1fr]">
               <div data-reveal>
                 <p className="text-xs uppercase tracking-[0.2em] text-ec-muted">SDK integration</p>
@@ -371,7 +373,7 @@ export default function Home() {
                 </div>
                 <pre className="overflow-x-auto bg-ec-canvas p-5 text-sm font-mono leading-relaxed text-ec-ink">
                   <code><span className="text-ec-muted">{"<!-- Add before </body> -->"}</span>{`
-`}<span style={{ color: "#3b82f6" }}>&lt;script</span>{" "}<span style={{ color: "#6b7280" }}>src</span>=<span style={{ color: "#10b981" }}>"https://ecolens.app/sdk.js"</span><span style={{ color: "#3b82f6" }}>&gt;&lt;/script&gt;</span>{`
+`}<span style={{ color: "#3b82f6" }}>&lt;script</span>{" "}<span style={{ color: "#6b7280" }}>src</span>=<span style={{ color: "#10b981" }}>&quot;https://ecolens-cloudinary.vercel.app/sdk.js&quot;</span><span style={{ color: "#3b82f6" }}>&gt;&lt;/script&gt;</span>{`
 `}<span style={{ color: "#3b82f6" }}>&lt;script&gt;</span>{`
   `}<span style={{ color: "#8b5cf6" }}>EcoLens</span>.<span style={{ color: "#f59e0b" }}>optimize</span>();{`
 `}<span style={{ color: "#3b82f6" }}>&lt;/script&gt;</span></code>
@@ -474,7 +476,7 @@ export default function Home() {
                       <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-ec-muted">Dev</span>
                     </div>
                     <p className="text-sm font-semibold text-ec-ink">Developer tools</p>
-                    <p className="max-w-[140px] text-center text-xs text-ec-muted">SDKs, APIs, and CLI integrations</p>
+                    <p className="text-center text-xs text-ec-muted" style={{ maxWidth: "140px" }}>SDKs, APIs, and CLI integrations</p>
                   </div>
                 </div>
 
@@ -489,7 +491,7 @@ export default function Home() {
                       <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-ec-muted">SaaS</span>
                     </div>
                     <p className="text-sm font-semibold text-ec-ink">SaaS platforms</p>
-                    <p className="max-w-[140px] text-center text-xs text-ec-muted">Drop-in media pipelines at scale</p>
+                    <p className="text-center text-xs text-ec-muted" style={{ maxWidth: "140px" }}>Drop-in media pipelines at scale</p>
                   </div>
                 </div>
 
@@ -503,7 +505,7 @@ export default function Home() {
                       <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-ec-muted">AI</span>
                     </div>
                     <p className="text-sm font-semibold text-ec-ink">AI-first products</p>
-                    <p className="max-w-[140px] text-center text-xs text-ec-muted">Smart delivery for AI-generated assets</p>
+                    <p className="text-center text-xs text-ec-muted" style={{ maxWidth: "140px" }}>Smart delivery for AI-generated assets</p>
                   </div>
                 </div>
               </div>
@@ -530,14 +532,9 @@ export default function Home() {
                   >
                     Try Demo
                   </button>
-                  <button
-                    onClick={() =>
-                      window.dispatchEvent(new Event("ec-auth-open"))
-                    }
-                    className="ec-button-secondary"
-                  >
-                    Get Started Free
-                  </button>
+                  <Link href="/docs" className="ec-button-secondary">
+                    Read the Docs
+                  </Link>
                 </div>
               </div>
             </div>
