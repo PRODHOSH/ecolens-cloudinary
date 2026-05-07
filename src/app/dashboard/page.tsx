@@ -28,7 +28,7 @@ function DashboardContent() {
   const [manualRepo, setManualRepo] = useState(""); // For website scans needing PR
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [solutionType, setSolutionType] = useState<"sdk" | "pr" | "prompt" | null>(null);
+  const [solutionType, setSolutionType] = useState<"sdk" | "pr" | "prompt" | "cli" | null>(null);
   const [isPrCreating, setIsPrCreating] = useState(false);
   const [prUrl, setPrUrl] = useState<string | null>(null);
   const [sdkCopied, setSdkCopied] = useState(false);
@@ -732,6 +732,50 @@ After completing changes, respond with "Done" and nothing else.`;
                             </button>
                           </div>
                           <p className="text-xs text-ec-muted">The prompt includes repo-wide steps, report structure, and Cloudinary setup guidance.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    onClick={() => setSolutionType("cli")}
+                    className={`cursor-pointer rounded-2xl border p-6 transition-all ${solutionType === "cli" ? "border-ec-brand bg-ec-brand/2 ring-2 ring-ec-brand/10" : "border-ec-hairline hover:border-ec-muted"}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-orange-100 bg-orange-50 text-orange-600">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <polyline points="4 17 10 11 4 5" />
+                          <line x1="12" y1="19" x2="20" y2="19" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold">EcoLens CLI</h4>
+                        <p className="text-sm text-ec-muted">Optimize locally using our npm package.</p>
+                      </div>
+                      {solutionType === "cli" && <div className="h-4 w-4 rounded-full bg-ec-brand shadow-[0_0_12px_rgba(59,130,246,0.5)]" />}
+                    </div>
+
+                    {solutionType === "cli" && (
+                      <div className="mt-6 flex flex-col gap-4">
+                        <div className="flex flex-col gap-3 rounded-xl border border-ec-hairline bg-ec-surface-soft p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-semibold text-ec-ink">npm package: ecolens</p>
+                              <p className="text-xs text-ec-muted">Run this in your terminal to get started.</p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleCopy("npm install -g ecolens", setSdkCopied); }}
+                              className="rounded-lg border border-ec-hairline bg-white px-4 py-2 text-xs font-semibold text-ec-ink transition hover:bg-ec-surface-soft"
+                            >
+                              {sdkCopied ? "Copied" : "Copy command"}
+                            </button>
+                          </div>
+                          <pre className="whitespace-pre-wrap rounded-lg border border-ec-hairline bg-white px-4 py-3 text-[11px] text-ec-ink">
+npm install -g ecolens{"\n"}
+ecolens install{"\n"}
+ecolens optimize
+                          </pre>
+                          <p className="text-xs text-ec-muted italic">Perfect for local development and CI/CD pipelines.</p>
                         </div>
                       </div>
                     )}
