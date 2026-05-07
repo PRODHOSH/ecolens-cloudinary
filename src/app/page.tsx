@@ -423,97 +423,61 @@ export default function Home() {
           <Testimonials />
 
           {/* ─── Ecosystem ────────────────────────────────────────── */}
-          <section className="ec-section overflow-hidden">
+          <section id="workflows" className="ec-section overflow-hidden border-t border-ec-hairline-soft">
             <div className="ec-container">
               <div className="text-center" data-reveal>
                 <h2 className="ec-display text-3xl font-semibold md:text-4xl">
-                  Built for Modern Product Ecosystems
+                  Optimized for Every Workflow
                 </h2>
                 <p className="mt-3 text-sm text-ec-muted">
-                  Three audiences. One platform. Zero compromises.
+                  Three ways to deliver lightning-fast media. Zero configuration required.
                 </p>
               </div>
 
-              {/* Orbital ring diagram */}
-              <div
-                className="relative mx-auto mt-16 flex items-center justify-center"
-                style={{ height: "480px", maxWidth: "560px" }}
-                data-reveal
-                data-reveal-delay="150"
-              >
-                {/* SVG connection lines */}
-                <svg
-                  className="absolute inset-0 h-full w-full"
-                  viewBox="0 0 560 480"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  {/* lines from center to each node */}
-                  <line x1="280" y1="240" x2="280" y2="68" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" className="ec-line-march" />
-                  <line x1="280" y1="240" x2="108" y2="372" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" className="ec-line-march" style={{ animationDelay: "0.3s" }} />
-                  <line x1="280" y1="240" x2="452" y2="372" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" className="ec-line-march" style={{ animationDelay: "0.6s" }} />
-                  {/* outer triangle connecting nodes */}
-                  <line x1="280" y1="68" x2="108" y2="372" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" className="ec-line-march" style={{ animationDelay: "0.9s" }} />
-                  <line x1="108" y1="372" x2="452" y2="372" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" className="ec-line-march" style={{ animationDelay: "1.2s" }} />
-                  <line x1="452" y1="372" x2="280" y2="68" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" className="ec-line-march" style={{ animationDelay: "1.5s" }} />
-                </svg>
-
-                {/* Center nexus */}
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                  <div className="ec-nexus-pulse h-10 w-10 rounded-full border-2 border-ec-hairline bg-ec-canvas flex items-center justify-center">
-                    <div className="h-2.5 w-2.5 rounded-full bg-ec-ink" />
+              <div className="mt-20 grid grid-cols-1 gap-12 md:grid-cols-3">
+                {/* SDK */}
+                <div className="flex flex-col items-center text-center" data-reveal data-reveal-delay="100">
+                  <div className="group relative mb-8 flex h-40 w-40 items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas shadow-sm transition-all hover:border-ec-brand hover:shadow-xl">
+                    <div className="absolute inset-0 animate-pulse rounded-full bg-ec-brand/5 opacity-0 group-hover:opacity-100" />
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ec-ink transition-colors group-hover:text-ec-brand">
+                      <polyline points="16 18 22 12 16 6" />
+                      <polyline points="8 6 2 12 8 18" />
+                    </svg>
                   </div>
+                  <h3 className="ec-display text-xl font-bold">Runtime SDK</h3>
+                  <p className="mt-2 text-sm text-ec-muted max-w-[200px]">Drop a single script tag to optimize assets instantly in the browser.</p>
                 </div>
 
-                {/* Node — top center: Developer tools */}
-                <div className="absolute" style={{ top: "20px", left: "50%", transform: "translateX(-50%)" }}>
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="ec-orbit-ring flex h-28 w-28 flex-col items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas shadow-sm" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ec-ink" aria-hidden="true">
-                        <polyline points="16 18 22 12 16 6" />
-                        <polyline points="8 6 2 12 8 18" />
-                      </svg>
-                      <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-ec-muted">Dev</span>
-                    </div>
-                    <p className="text-sm font-semibold text-ec-ink">Developer tools</p>
-                    <p className="text-center text-xs text-ec-muted" style={{ maxWidth: "140px" }}>SDKs, APIs, and CLI integrations</p>
+                {/* CLI */}
+                <div className="flex flex-col items-center text-center" data-reveal data-reveal-delay="250">
+                  <div className="group relative mb-8 flex h-40 w-40 items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas shadow-sm transition-all hover:border-ec-brand hover:shadow-xl">
+                    <div className="absolute inset-0 animate-pulse rounded-full bg-ec-brand/5 opacity-0 group-hover:opacity-100" style={{ animationDelay: "0.5s" }} />
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ec-ink transition-colors group-hover:text-ec-brand">
+                      <polyline points="4 17 10 11 4 5" />
+                      <line x1="12" y1="19" x2="20" y2="19" />
+                    </svg>
                   </div>
+                  <h3 className="ec-display text-xl font-bold">EcoLens CLI</h3>
+                  <p className="mt-2 text-sm text-ec-muted max-w-[200px]">Optimize local repositories and assets with a simple terminal command.</p>
                 </div>
 
-                {/* Node — bottom left: SaaS platforms */}
-                <div className="absolute" style={{ bottom: "20px", left: "60px" }}>
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="ec-orbit-ring flex h-28 w-28 flex-col items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.07)", animationDelay: "0.6s" }}>
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ec-ink" aria-hidden="true">
-                        <rect x="2" y="3" width="20" height="14" rx="2" />
-                        <path d="M8 21h8M12 17v4" />
-                      </svg>
-                      <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-ec-muted">SaaS</span>
-                    </div>
-                    <p className="text-sm font-semibold text-ec-ink">SaaS platforms</p>
-                    <p className="text-center text-xs text-ec-muted" style={{ maxWidth: "140px" }}>Drop-in media pipelines at scale</p>
+                {/* GitHub PR */}
+                <div className="flex flex-col items-center text-center" data-reveal data-reveal-delay="400">
+                  <div className="group relative mb-8 flex h-40 w-40 items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas shadow-sm transition-all hover:border-ec-brand hover:shadow-xl">
+                    <div className="absolute inset-0 animate-pulse rounded-full bg-ec-brand/5 opacity-0 group-hover:opacity-100" style={{ animationDelay: "1s" }} />
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ec-ink transition-colors group-hover:text-ec-brand">
+                      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                    </svg>
                   </div>
-                </div>
-
-                {/* Node — bottom right: AI-first */}
-                <div className="absolute" style={{ bottom: "20px", right: "60px" }}>
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="ec-orbit-ring flex h-28 w-28 flex-col items-center justify-center rounded-full border border-ec-hairline bg-ec-canvas" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.07)", animationDelay: "1.2s" }}>
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ec-ink" aria-hidden="true">
-                        <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 0 2h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1 0-2h1a7 7 0 0 1 7-7h1V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2z" />
-                      </svg>
-                      <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-ec-muted">AI</span>
-                    </div>
-                    <p className="text-sm font-semibold text-ec-ink">AI-first products</p>
-                    <p className="text-center text-xs text-ec-muted" style={{ maxWidth: "140px" }}>Smart delivery for AI-generated assets</p>
-                  </div>
+                  <h3 className="ec-display text-xl font-bold">GitHub PRs</h3>
+                  <p className="mt-2 text-sm text-ec-muted max-w-[200px]">Automatically refactor codebases via intelligent, eco-conscious pull requests.</p>
                 </div>
               </div>
             </div>
           </section>
 
           {/* ─── CTA ──────────────────────────────────────────────── */}
-          <section id="pricing" className="ec-section">
+          <section id="start" className="ec-section">
             <div className="ec-container">
               <div className="ec-card p-10 text-center" data-reveal>
                 <h2 className="ec-display text-3xl font-semibold md:text-4xl">

@@ -77,7 +77,7 @@ export default function Footer() {
                 <li><a href="#how" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark">How it works</a></li>
                 <li><a href="/docs" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark font-bold italic">Documentation</a></li>
                 <li><a href="#features" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark">Features</a></li>
-                <li><a href="#pricing" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark">Pricing</a></li>
+                <li><a href="#workflows" className="text-ec-on-dark-soft transition-colors hover:text-ec-on-dark">Workflows</a></li>
               </ul>
             </div>
 

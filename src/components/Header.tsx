@@ -107,7 +107,7 @@ export default function Header() {
             <>
               <a href="#product" className={`text-sm font-medium transition ${navLinkClass}`}>Product</a>
               <a href="#features" className={`text-sm font-medium transition ${navLinkClass}`}>Features</a>
-              <a href="#pricing" className={`text-sm font-medium transition ${navLinkClass}`}>Pricing</a>
+              <a href="#sdk" className={`text-sm font-medium transition ${navLinkClass}`}>SDK</a>
             </>
           )}
         </nav>
