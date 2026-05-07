@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
+import { useEffect, useState, useCallback, useMemo, Suspense, Fragment } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -470,7 +470,7 @@ After completing changes, respond with "Done" and nothing else.`;
                   </div>
                 )}
 
-                <div className="mb-10 rounded-xl border border-ec-hairline">
+                <div className="mb-10 rounded-xl border border-ec-hairline max-h-[600px] overflow-y-auto">
                   <table className="w-full text-left text-sm">
                     <thead className="sticky top-0 bg-ec-surface-soft text-[10px] uppercase tracking-widest text-ec-muted">
                       <tr>
@@ -484,9 +484,8 @@ After completing changes, respond with "Done" and nothing else.`;
                         {result.media.map((item) => {
                           const isOpen = expandedAssets.includes(item.id);
                           return (
-                            <>
+                            <Fragment key={item.id}>
                               <tr
-                                key={item.id}
                                 onClick={() =>
                                   setExpandedAssets((prev) => (prev.includes(item.id) ? prev.filter((i) => i !== item.id) : [...prev, item.id]))
                                 }
@@ -539,7 +538,7 @@ After completing changes, respond with "Done" and nothing else.`;
                                   </td>
                                 </tr>
                               )}
-                            </>
+                            </Fragment>
                           );
                         })}
                       </tbody>
