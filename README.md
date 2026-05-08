@@ -80,9 +80,9 @@ npx ecolens optimize
 
 2. **Configuration**:
    Copy .env.example to .env.local and add your credentials:
-   - NEXT_PUBLIC_SUPABASE_URL
-   - NEXT_PUBLIC_SUPABASE_ANON_KEY
-   - CLOUDINARY_CLOUD_NAME
+    - NEXT_PUBLIC_SUPABASE_URL
+    - NEXT_PUBLIC_SUPABASE_ANON_KEY
+    - CLOUDINARY_CLOUD_NAME
 
 3. **Development**:
    ```bash

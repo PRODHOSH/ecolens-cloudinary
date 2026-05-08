@@ -7,15 +7,16 @@
     return;
   }
 
-  const cloudName = script.getAttribute("data-cloud");
+  let cloudName = script.getAttribute("data-cloud");
   const transform = script.getAttribute("data-transform") || "f_auto,q_auto";
   const selector = script.getAttribute("data-selector") || "img";
   const skipAttr = script.getAttribute("data-skip") || "data-ecolens-skip";
 
-  const hasCloud = Boolean(cloudName);
-  if (!hasCloud) {
-    console.warn("EcoLens SDK: data-cloud is missing. Falling back to jsDelivr for GitHub assets only.");
+  if (!cloudName) {
+    cloudName = "ddn6tl045"; // Default EcoLens cloud
   }
+  const hasCloud = true; // Always has a cloud now
+
 
   const cloudPrefix = hasCloud
     ? "https://res.cloudinary.com/" + cloudName + "/image/fetch/" + transform + "/"
