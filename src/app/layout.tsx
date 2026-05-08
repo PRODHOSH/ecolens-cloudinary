@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Manrope, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
+
 
 const displayFont = Manrope({
   variable: "--font-display",
@@ -86,8 +88,23 @@ export default function RootLayout({
       className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-transparent text-ec-ink">
+        {/* Google Tag (gtag.js) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-27HPF43PZE"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-27HPF43PZE');
+          `}
+        </Script>
         {children}
       </body>
+
     </html>
   );
 }
