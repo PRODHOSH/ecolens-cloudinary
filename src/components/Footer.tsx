@@ -10,14 +10,15 @@ export default function Footer() {
 
           {/* Brand + developer card */}
           <div className="max-w-xs shrink-0">
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <img 
-                src="https://res.cloudinary.com/ddn6tl045/image/fetch/f_auto,q_auto,e_trim/https://raw.githubusercontent.com/PRODHOSH/ecolens-cloudinary/main/public/logo.png" 
+                src="/logo.png" 
                 alt="EcoLens Logo" 
-                className="h-6 w-6 rounded-md object-contain scale-[1.3] transition-transform" 
+                className="h-6 w-6 rounded-md object-contain" 
               />
-              <p className="ec-display text-xl font-semibold text-ec-on-dark ml-3">EcoLens</p>
+              <p className="ec-display text-xl font-semibold text-ec-on-dark">EcoLens</p>
             </div>
+
 
 
 
