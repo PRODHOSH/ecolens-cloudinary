@@ -10,7 +10,11 @@ export default function Footer() {
 
           {/* Brand + developer card */}
           <div className="max-w-xs shrink-0">
-            <p className="ec-display text-xl font-semibold text-ec-on-dark">EcoLens</p>
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="EcoLens Logo" className="h-6 w-6 rounded-md object-cover" />
+              <p className="ec-display text-xl font-semibold text-ec-on-dark">EcoLens</p>
+            </div>
+
             <p className="mt-2 text-sm text-ec-on-dark-soft">
               Optimize your media. Reduce your carbon footprint.
             </p>

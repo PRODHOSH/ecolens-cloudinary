@@ -91,11 +91,10 @@ export default function Header() {
     <header className={`relative z-20 w-full border-b ${headerClass}`}>
       <div className="ec-container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${logoBoxClass}`}>
-            <span className="text-xs font-bold">E</span>
-          </div>
-          <span className={`ec-display text-lg font-bold ${brandTextClass}`}>EcoLens</span>
+          <img src="/logo.png" alt="EcoLens Logo" className="h-8 w-8 rounded-lg object-cover" />
+          <span className={`ec-display text-xl font-bold ${brandTextClass}`}>EcoLens</span>
         </Link>
+
 
         <nav className="hidden items-center gap-6 md:flex">
           <Link href="/docs" className={`text-sm font-medium transition ${navLinkClass}`}>Docs</Link>
