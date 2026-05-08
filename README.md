@@ -31,7 +31,7 @@ EcoLens was built to bridge this gap. We make optimization effortless so you can
 - **Flexible Integration**:
   - **JS SDK**: Drop a single script tag into your project to optimize everything at runtime.
   - **GitHub PRs**: Let EcoLens open a pull request to refactor your code automatically.
-  - **AI Prompting**: Use specialized prompts for tools like Claude or ChatGPT to clean up your repo.
+  - **AI Prompting**: Use specialized prompts for tools like Claude Code or Cursor to clean up your repo.
   - **EcoLens CLI**: Run optimizations locally from your terminal.
 
 ---
