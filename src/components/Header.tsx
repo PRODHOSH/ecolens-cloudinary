@@ -91,8 +91,13 @@ export default function Header() {
     <header className={`relative z-20 w-full border-b ${headerClass}`}>
       <div className="ec-container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="EcoLens Logo" className="h-8 w-8 rounded-lg object-cover" />
+          <img 
+            src="https://res.cloudinary.com/ddn6tl045/image/fetch/f_auto,q_auto,e_trim/https://ecolens-cloudinary.vercel.app/logo.png" 
+            alt="EcoLens Logo" 
+            className="h-8 w-8 rounded-lg object-contain" 
+          />
           <span className={`ec-display text-xl font-bold ${brandTextClass}`}>EcoLens</span>
+
         </Link>
 
 

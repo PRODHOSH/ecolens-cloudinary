@@ -11,9 +11,14 @@ export default function Footer() {
           {/* Brand + developer card */}
           <div className="max-w-xs shrink-0">
             <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="EcoLens Logo" className="h-6 w-6 rounded-md object-cover" />
+              <img 
+                src="https://res.cloudinary.com/ddn6tl045/image/fetch/f_auto,q_auto,e_trim/https://ecolens-cloudinary.vercel.app/logo.png" 
+                alt="EcoLens Logo" 
+                className="h-6 w-6 rounded-md object-contain" 
+              />
               <p className="ec-display text-xl font-semibold text-ec-on-dark">EcoLens</p>
             </div>
+
 
             <p className="mt-2 text-sm text-ec-on-dark-soft">
               Optimize your media. Reduce your carbon footprint.
