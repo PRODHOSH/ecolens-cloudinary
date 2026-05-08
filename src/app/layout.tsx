@@ -75,9 +75,10 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "https://res.cloudinary.com/ddn6tl045/image/fetch/f_auto,q_auto,e_trim/https://ecolens-cloudinary.vercel.app/logo.png",
-    apple: "https://res.cloudinary.com/ddn6tl045/image/fetch/f_auto,q_auto,e_trim/https://ecolens-cloudinary.vercel.app/logo.png",
+    icon: "https://res.cloudinary.com/ddn6tl045/image/fetch/f_auto,q_auto,e_trim/https://raw.githubusercontent.com/PRODHOSH/ecolens-cloudinary/main/public/logo.png",
+    apple: "https://res.cloudinary.com/ddn6tl045/image/fetch/f_auto,q_auto,e_trim/https://raw.githubusercontent.com/PRODHOSH/ecolens-cloudinary/main/public/logo.png",
   },
+
 };
 
 

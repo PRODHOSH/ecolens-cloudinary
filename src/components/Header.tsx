@@ -90,15 +90,15 @@ export default function Header() {
   return (
     <header className={`relative z-20 w-full border-b ${headerClass}`}>
       <div className="ec-container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center">
           <img 
-            src="https://res.cloudinary.com/ddn6tl045/image/fetch/f_auto,q_auto,e_trim/https://ecolens-cloudinary.vercel.app/logo.png" 
+            src="https://res.cloudinary.com/ddn6tl045/image/fetch/f_auto,q_auto,e_trim/https://raw.githubusercontent.com/PRODHOSH/ecolens-cloudinary/main/public/logo.png" 
             alt="EcoLens Logo" 
-            className="h-8 w-8 rounded-lg object-contain" 
+            className="h-8 w-8 rounded-lg object-contain scale-[1.5] transition-transform" 
           />
-          <span className={`ec-display text-xl font-bold ${brandTextClass}`}>EcoLens</span>
-
+          <span className={`ec-display text-xl font-bold ${brandTextClass} ml-4`}>EcoLens</span>
         </Link>
+
 
 
         <nav className="hidden items-center gap-6 md:flex">
