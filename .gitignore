@@ -45,4 +45,7 @@ design.md
 
 # env files
 !.env.example
-config.bat
+
+# env files
+.env*
+!.env.example
